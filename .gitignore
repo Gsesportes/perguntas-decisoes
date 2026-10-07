@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.local/
+pacote/
+*.zip
+*.log
+*.sqlite
+*.sqlite-*
+*.db
+.env
+.env.*
+docs/evidencias/
+docs/planos/
+docs/previas/
+docs/specs/perguntas-decisoes.md
+publicacao/

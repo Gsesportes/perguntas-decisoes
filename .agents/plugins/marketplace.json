@@ -1,0 +1,20 @@
+{
+  "name": "perguntas-decisoes-local",
+  "interface": {
+    "displayName": "Perguntas e decisões — local"
+  },
+  "plugins": [
+    {
+      "name": "perguntas-decisoes",
+      "source": {
+        "source": "local",
+        "path": "./plugins/perguntas-decisoes"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

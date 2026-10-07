@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "perguntas-decisoes",
+  "version": "0.3.5",
+  "description": "Perguntas e decisões em lote no aplicativo desktop.",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Perguntas e decisões",
+        "shortDescription": "Perguntas e escolhas em lote",
+        "longDescription": "Formulários locais com observações e entrega na conversa.",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive"
+        ],
+        "defaultPrompt": "Crie um formulário para reunir as perguntas deste assunto.",
+        "logo": "./assets/logo-verde.png",
+        "composerIcon": "./assets/icone-128.png",
+        "brandColor": "#007568",
+        "brandColorDark": "#8AD7BF"
+      }
+    }
+  }
+}

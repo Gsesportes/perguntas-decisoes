@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "perguntas": {
+      "command": "node",
+      "args": [
+        "server/servidor.mjs"
+      ],
+      "cwd": "."
+    }
+  }
+}

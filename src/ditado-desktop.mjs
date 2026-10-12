@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { join, resolve, relative, isAbsolute } from 'node:path';
+import { availableParallelism } from 'node:os';
 import { Repositorio } from './repositorio.mjs';
 
 export const FERRAMENTA_DITADO = { name: 'controlar_ditado', description: 'Operação privada de ditado local vinculada a um campo.', inputSchema: { type: 'object', properties: { acao: { enum: ['iniciar', 'consultar', 'parar', 'cancelar', 'descartar'] }, sessao: { type: 'string' }, destino: { type: 'object' } }, required: ['acao'], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, _meta: { ui: { visibility: ['app'] } } };
@@ -12,6 +13,16 @@ export function validarDestino(destino) {
   if (typeof destino.id !== 'string' || !destino.id || !Number.isInteger(destino.versao) || !['resposta', 'observacao', 'gerais'].includes(destino.campo)) throw new Error('Formulário, versão e campo são obrigatórios.');
   if (destino.id.length > 100 || (destino.pergunta && (typeof destino.pergunta !== 'string' || destino.pergunta.length > 100))) throw new Error('Destino excede o limite.');
   if (destino.campo !== 'gerais' && (typeof destino.pergunta !== 'string' || !destino.pergunta)) throw new Error('Pergunta do ditado obrigatória.');
+}
+export function validarRegistroDestino(registro, destino, original) {
+  if (registro.entrega || (original === undefined && registro.versao !== destino.versao)) throw new Error('O formulário mudou ou está em entrega. O campo foi preservado; o ditado não foi aplicado.');
+  if (destino.campo !== 'gerais') {
+    const pergunta = registro.formulario.perguntas.find(item => item.id === destino.pergunta);
+    if (!pergunta || (destino.campo === 'resposta' && pergunta.tipo !== 'texto')) throw new Error('Ditado indisponível para esse campo.');
+  }
+  const texto = destino.campo === 'gerais' ? registro.rascunho.gerais ?? '' : (destino.campo === 'resposta' ? registro.rascunho.respostas : registro.rascunho.observacoes)[destino.pergunta] ?? '';
+  if (original !== undefined && texto !== original) throw new Error('O campo de destino mudou em outra janela. O texto existente foi preservado; o ditado não foi aplicado.');
+  return texto;
 }
 export function empacotarWav(pcm) {
   if (!Buffer.isBuffer(pcm) || !pcm.length || pcm.length % 2 || pcm.length > 1952000) throw new Error('Áudio PCM inválido.');
@@ -84,11 +95,12 @@ function capturar(sessao, executavel, duracao = 60000) {
     });
   });
 }
-export function argumentosReconhecimento({ modelo }) {
+export function argumentosReconhecimento({ modelo, tarefas = availableParallelism() }) {
   // A entrada '-' também vira o nome de saída padrão no whisper.cpp 1.9.2.
   // No Windows isso seleciona CON e desativa o retorno pelo pipe. Um prefixo
   // explícito mantém o retorno normal; sem -otxt/-oj nenhum arquivo é criado.
-  return ['-m', modelo, '-l', 'pt', '-f', '-', '-nt', '-np', '-ng', '-t', '2', '-sns', '-of', 'ditado-local'];
+  const paralelismo = Math.max(1, Math.min(4, Math.floor(tarefas) || 1));
+  return ['-m', modelo, '-l', 'pt', '-f', '-', '-nt', '-np', '-ng', '-t', String(paralelismo), '-sns', '-of', 'ditado-local'];
 }
 function reconhecer(sessao, motor, wav) {
   const filho = spawn(motor.executavel, argumentosReconhecimento(motor), { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -117,14 +129,10 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
   const repositorio = new Repositorio(banco);
   const sessoes = new Map();
   let motorPreparado;
-  async function conferirDestino(destino) {
+  async function conferirDestino(destino, original) {
     validarDestino(destino);
     const registro = await repositorio.ler(dono, destino.id);
-    if (registro.versao !== destino.versao || registro.entrega) throw new Error('O formulário mudou ou está em entrega. O campo foi preservado; o ditado não foi aplicado.');
-    if (destino.campo !== 'gerais') {
-      const pergunta = registro.formulario.perguntas.find(item => item.id === destino.pergunta);
-      if (!pergunta || (destino.campo === 'resposta' && pergunta.tipo !== 'texto')) throw new Error('Ditado indisponível para esse campo.');
-    }
+    return validarRegistroDestino(registro, destino, original);
   }
   function parar(sessao, cancelar) {
     if (cancelar) sessao.cancelado = true;
@@ -144,9 +152,11 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
       if (captura.erro) throw new Error(captura.erro);
       if (!pcm || !captura.metricas?.sinal_detectado || captura.metricas.rms < 0.00015) throw new Error('Nenhum som suficiente foi detectado. O campo foi preservado.');
       sessao.estado = 'transcrevendo';
+      const inicioTranscricao = Date.now();
       const wav = empacotarWav(pcm); pcm.fill(0); pcm = null;
       const texto = await reconhecer(sessao, motor, wav);
-      if (!sessao.cancelado) { await conferirDestino(sessao.destino); sessao.texto = texto; }
+      sessao.metricas.transcricao_ms = Date.now() - inicioTranscricao;
+      if (!sessao.cancelado) { await conferirDestino(sessao.destino, sessao.original); sessao.texto = texto; }
     } catch (erro) { if (!sessao.cancelado) sessao.erro = erro.message; }
     finally {
       pcm?.fill(0); clearTimeout(sessao.limiteParada);
@@ -167,13 +177,13 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
       if (!entrada || Object.keys(entrada).some(chave => !['acao', 'sessao', 'destino'].includes(chave))) throw new Error('Operação de ditado inválida.');
       if (entrada.acao === 'iniciar') {
         if (entrada.sessao) throw new Error('Início não aceita sessão externa.');
-        await conferirDestino(entrada.destino);
+        const original = await conferirDestino(entrada.destino);
         if ([...sessoes.values()].some(item => !item.fim)) throw new Error('Já existe um ditado ativo.');
         motorPreparado ??= obterMotor().catch(erro => { motorPreparado = null; throw erro; });
         const motor = await motorPreparado;
         if ([...sessoes.values()].some(item => !item.fim)) throw new Error('Já existe um ditado ativo.');
         const id = crypto.randomUUID();
-        const sessao = { destino: structuredClone(entrada.destino), estado: 'iniciando', contato: Date.now(), cancelado: false };
+        const sessao = { destino: structuredClone(entrada.destino), original, estado: 'iniciando', contato: Date.now(), cancelado: false };
         sessoes.set(id, sessao);
         void executar(sessao, motor);
         return { sessao: id, estado: sessao.estado, limite_segundos: 60 };

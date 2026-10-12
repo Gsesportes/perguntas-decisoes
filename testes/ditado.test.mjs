@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { acrescentarDitado } from '../src/ditado-interface.mjs';
-import { argumentosReconhecimento, empacotarWav, validarDestino } from '../src/ditado-desktop.mjs';
+import { acrescentarDitado, faseDitado } from '../src/ditado-interface.mjs';
+import { argumentosReconhecimento, empacotarWav, validarDestino, validarRegistroDestino } from '../src/ditado-desktop.mjs';
 
 test('ditado acrescenta texto e preserva o conteúdo anterior', () => {
   assert.equal(acrescentarDitado({ original: 'Texto anterior.', atual: 'Texto anterior.', texto: ' Nova fala. ' }), 'Texto anterior. Nova fala.');
@@ -33,5 +33,32 @@ test('entrada por pipe mantém saída de texto capturável no Windows, sem arqui
   assert.equal(argumentos[argumentos.indexOf('-f') + 1], '-');
   assert.notEqual(argumentos[argumentos.indexOf('-of') + 1], '-');
   for (const proibido of ['-otxt', '-oj', '-ojf', '-osrt', '-ovtt']) assert.equal(argumentos.includes(proibido), false);
+});
+
+test('parada solicitada prevalece sobre uma consulta atrasada de gravação', () => {
+  assert.equal(faseDitado('gravando', { paradaSolicitada: true }), 'encerrando');
+  assert.equal(faseDitado('transcrevendo', { paradaSolicitada: true }), 'transcrevendo');
+  assert.equal(faseDitado('gravando', { cancelado: true }), 'cancelando');
+  assert.throws(() => faseDitado('desconhecido'), /não reconhecido/);
+});
+
+test('edição de outro campo não invalida ditado, mas alteração do destino invalida', () => {
+  const destino = { id: 'teste', versao: 1, campo: 'resposta', pergunta: 'p1' };
+  const registro = { versao: 1, entrega: null, formulario: { perguntas: [{ id: 'p1', tipo: 'texto' }] }, rascunho: { respostas: { p1: 'Antes' }, observacoes: {}, gerais: '' } };
+  const original = validarRegistroDestino(registro, destino);
+  registro.versao = 2; registro.rascunho.gerais = 'Outro campo preenchido';
+  assert.equal(validarRegistroDestino(registro, destino, original), 'Antes');
+  assert.throws(() => validarRegistroDestino(registro, destino), /formulário mudou/);
+  registro.rascunho.respostas.p1 = 'Outra janela alterou o destino';
+  assert.throws(() => validarRegistroDestino(registro, destino, original), /destino mudou/);
+  registro.rascunho.respostas.p1 = 'Antes'; registro.entrega = { token: 'preparacao-ficticia' };
+  assert.throws(() => validarRegistroDestino(registro, destino, original), /em entrega/);
+});
+
+test('paralelismo respeita disponibilidade e conserva o limite de quatro tarefas', () => {
+  for (const [disponiveis, esperado] of [[1, '1'], [2, '2'], [8, '4']]) {
+    const argumentos = argumentosReconhecimento({ modelo: 'modelo-local.bin', tarefas: disponiveis });
+    assert.equal(argumentos[argumentos.indexOf('-t') + 1], esperado);
+  }
 });
 

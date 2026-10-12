@@ -31,7 +31,7 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - O diretório de trabalho do MCP portátil usa o caminho contido `./`; a forma `.` é recusada pelo carregador Agent Plugins do Codex. O aceite da conexão exige que o próprio Codex reconheça o servidor declarado, além de conseguir iniciar o comando diretamente.
 - Na abertura manual sem resultado inicial utilizável, consultar os pendentes pela operação privada após conectar. Um resultado de formulário recebido durante a consulta prevalece sobre a lista tardia. Falha ou ausência de conteúdo devolvido deve produzir erro visível, sem permanecer em uma tela vazia.
 - Instalação distribuída por GitHub com catálogo pronto e Instalar.cmd. Requer Windows, Node 24 e Codex desktop; o instalador verifica os requisitos antes de copiar arquivos, preserva registros existentes e não reinicia o aplicativo.
-- O vínculo MCP aponta para componentes versionados em pasta própria do perfil, fora do cache descartável de plugins. Atualizações conservam versões anteriores; não substituir arquivos de uma mesma versão por conteúdo diferente. Conferir marcadores de propriedade e recusar links simbólicos.
+- O servidor MCP é fornecido pelo próprio plugin, sem registrar uma segunda conexão global para a mesma ferramenta. Componentes nativos ficam versionados em pasta própria do perfil, fora do cache descartável de plugins. Atualizações conservam versões anteriores; não substituir arquivos de uma mesma versão por conteúdo diferente. Conferir marcadores de propriedade e recusar links simbólicos. Vínculos legados existentes exigem conferência de propriedade antes de remoção; não remover conexões de terceiros.
 - Instalação e escrita do vínculo não comprovam recarga da conexão já aberta. Informar essa fronteira; não prometer que fechar somente a aba atualiza o servidor nem orientar um botão de atualização que não foi confirmado.
 - Fonte pública e produtos sem respostas reais, nomes particulares, caminhos pessoais, rascunhos, credenciais, capturas ou histórico privado.
 - Layout, logo, cores, tipografia e organização preservados.
@@ -74,6 +74,8 @@ Exigir lint, regressões pertinentes, construção, conferência do comando dist
 Web, celular, nuvem e sistemas operacionais diferentes não estão validados por este contrato.
 
 ## Histórico de mudanças
+
+- 2026-10-12 — Fonte local 0.3.6-ditado.6 melhora os estados do microfone, permite editar outros campos durante o reconhecimento e ajusta paralelismo mantendo modelo e qualidade configurada. Instalador deixa de criar conexão global duplicada; vínculos legados não foram removidos automaticamente. Lint e 61 verificações passaram, sem publicação. Teste real anterior confirmou resposta, observações individuais e gerais e envio ao chat; alterações da iteração 6 ainda não foram verificadas no painel porque a conexão ativa permanece na iteração 5. Detalhes no contrato de ditado e evidência privada.
 
 - 2026-10-06 — Contrato neutro 0.3.5: salvamento e entrega associados à origem, erros visíveis, paginação, limites agregados, comando portátil e exemplos fictícios. Evidências operacionais ficam em acervo interno separado.
 - 2026-10-07 — Preparação GitHub para outro computador: catálogo pronto, instalador Windows com verificação de requisitos, proteção de pasta/registro existente e conferência do vínculo MCP. Código do formulário e layout preservados.

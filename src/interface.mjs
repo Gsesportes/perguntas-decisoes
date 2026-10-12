@@ -36,6 +36,7 @@ export function montarInterface(raiz, adaptador) {
   const obter = seletor => raiz.querySelector(seletor);
   let atual = null;
   let ocupado = false;
+  let ditando = false;
   let entregue = false;
   let entregaPreparada = null;
   let filaSalvamento = Promise.resolve();
@@ -48,7 +49,7 @@ export function montarInterface(raiz, adaptador) {
   const concluidos = new Set();
   const recebidos = new Map();
   const ditado = criarDitadoInterface({
-    raiz, adaptador, contexto: () => atual, bloquear,
+    raiz, adaptador, contexto: () => atual, bloquear: bloquearDitado,
     antesDeIniciar: async () => { await filaSalvamento; if (erroSalvamento) throw erroSalvamento; },
     validarTexto: (destino, texto) => {
       const copia = structuredClone(atual.rascunho);
@@ -70,7 +71,7 @@ export function montarInterface(raiz, adaptador) {
     aviso.hidden = !mensagem || lista.hidden;
   }
   function aplicarCarregamentoPendente() {
-    if (!carregamentoPendente || ocupado || salvamentosPendentes || erroSalvamento || preparacaoPendente || (entregaPreparada && !entregue)) return;
+    if (!carregamentoPendente || ocupado || ditando || salvamentosPendentes || erroSalvamento || preparacaoPendente || (entregaPreparada && !entregue)) return;
     const resultado = carregamentoPendente;
     carregamentoPendente = null;
     carregar(resultado);
@@ -80,6 +81,17 @@ export function montarInterface(raiz, adaptador) {
     raiz.querySelectorAll('form input,form textarea,form button').forEach(campo => { campo.disabled = valor; });
     if (!valor && (entregue || entregaPreparada || preparacaoPendente)) raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = true; });
     atualizarNavegacao();
+  }
+  function bloquearDitado(valor, destino, preparando = false) {
+    ditando = valor;
+    if (valor) {
+      raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = ocupado || preparando || campo === destino; });
+      raiz.querySelectorAll('form button').forEach(botao => { botao.disabled = true; });
+      atualizarNavegacao();
+    } else {
+      bloquear(ocupado);
+      aplicarCarregamentoPendente();
+    }
   }
   function atualizarNavegacao() {
     if (!atual) return;
@@ -91,23 +103,23 @@ export function montarInterface(raiz, adaptador) {
     obter('[data-pagina]').textContent = `Página ${pagina + 1} de ${paginas}`;
     obter('[data-barra]').max = total;
     obter('[data-barra]').value = respondidas;
-    obter('[data-anterior]').disabled = ocupado || entregue || preparacaoPendente || Boolean(entregaPreparada) || pagina === 0;
+    obter('[data-anterior]').disabled = ocupado || ditando || entregue || preparacaoPendente || Boolean(entregaPreparada) || pagina === 0;
     obter('[data-proximo]').hidden = pagina === paginas - 1;
-    obter('[data-proximo]').disabled = ocupado || entregue || preparacaoPendente || Boolean(entregaPreparada);
+    obter('[data-proximo]').disabled = ocupado || ditando || entregue || preparacaoPendente || Boolean(entregaPreparada);
     obter('[data-entregas]').hidden = pagina !== paginas - 1;
     obter('[data-gerais]').hidden = pagina !== paginas - 1;
     const capacidades = adaptador.capacidades();
     raiz.querySelectorAll('[data-entrega]').forEach(botao => {
       const disponivel = capacidades[botao.dataset.entrega];
-      botao.disabled = ocupado || entregue || preparacaoPendente || !disponivel;
+      botao.disabled = ocupado || ditando || entregue || preparacaoPendente || !disponivel;
       if (!disponivel) botao.setAttribute('aria-description', 'Requer integração suportada pelo aplicativo.');
       else botao.removeAttribute('aria-description');
     });
     obter('[data-conexao]').textContent = adaptador.conexao;
     obter('[data-retomar]').hidden = (!entregaPreparada && !preparacaoPendente) || entregue;
-    obter('[data-retomar]').disabled = ocupado;
+    obter('[data-retomar]').disabled = ocupado || ditando;
     const aviso = obter('[data-erro]');
-    if (erroSalvamento && !salvamentosPendentes && !ocupado && !entregue && !entregaPreparada && !preparacaoPendente && !aviso.querySelector('[data-recuperacao]')) {
+    if (erroSalvamento && !salvamentosPendentes && !ocupado && !ditando && !entregue && !entregaPreparada && !preparacaoPendente && !aviso.querySelector('[data-recuperacao]')) {
       const opcoes = elemento('span', { 'data-recuperacao': '' });
       opcoes.append(elemento('span', {}, ' Seu texto continua nesta tela. Usar a versão salva descarta alterações locais; guardar seu preenchimento substitui as respostas da versão atual. '));
       for (const [manterLocal, texto] of [[false, 'Usar versão salva'], [true, 'Guardar meu preenchimento']]) {
@@ -213,12 +225,14 @@ export function montarInterface(raiz, adaptador) {
   }
   obter('[data-formulario]').addEventListener('submit', evento => evento.preventDefault());
   obter('[data-proximo]').addEventListener('click', () => {
+    if (ocupado || ditando || entregue || preparacaoPendente || entregaPreparada) return;
     if (!paginaValida()) return;
     atual.rascunho.pagina += 1;
     mostrarErro(''); desenharPagina(); salvar();
     obter('[data-titulo]').scrollIntoView({ block: 'start', behavior: 'auto' });
   });
   obter('[data-anterior]').addEventListener('click', () => {
+    if (ocupado || ditando || entregue || preparacaoPendente || entregaPreparada) return;
     atual.rascunho.pagina -= 1;
     mostrarErro(''); desenharPagina(); salvar();
     obter('[data-titulo]').scrollIntoView({ block: 'start', behavior: 'auto' });
@@ -226,7 +240,7 @@ export function montarInterface(raiz, adaptador) {
   obter('#pd-observacoes-gerais').addEventListener('input', evento => { if (!ocupado && !entregue && !entregaPreparada && !preparacaoPendente) { atual.rascunho.gerais = evento.target.value; salvar(); } });
   ditado.adicionar(obter('#pd-observacoes-gerais'), { campo: 'gerais' }, 'observações gerais');
   raiz.querySelectorAll('[data-entrega]').forEach(botao => botao.addEventListener('click', async () => {
-    if (ocupado || entregue || !paginaValida()) return;
+    if (ocupado || ditando || entregue || !paginaValida()) return;
     const origem = atual;
     try {
       montarEntrega(atual.formulario, atual.rascunho);
@@ -263,7 +277,7 @@ export function montarInterface(raiz, adaptador) {
     }
   }));
   obter('[data-limpar]').addEventListener('click', async () => {
-    if (ocupado) return;
+    if (ocupado || ditando) return;
     const origem = atual; const preparacao = entregaPreparada;
     bloquear(true);
     try { await adaptador.concluir(origem.id, preparacao.token); concluidos.add(origem.id); recebidos.delete(origem.id); obter('[data-formulario]').hidden = true; mostrarErro(''); }
@@ -271,7 +285,7 @@ export function montarInterface(raiz, adaptador) {
     finally { bloquear(false); aplicarCarregamentoPendente(); }
   });
   obter('[data-retomar]').addEventListener('click', async () => {
-    if (ocupado) return;
+    if (ocupado || ditando) return;
     const origem = atual; let preparacao = entregaPreparada;
     bloquear(true);
     try {
@@ -296,7 +310,7 @@ export function montarInterface(raiz, adaptador) {
   });
 
   async function recuperarSalvamento(manterLocal) {
-    if (ocupado || salvamentosPendentes) return;
+    if (ocupado || ditando || salvamentosPendentes) return;
     const origem = atual;
     bloquear(true);
     try {
@@ -346,7 +360,7 @@ export function montarInterface(raiz, adaptador) {
   function carregar(resultado) {
     if (concluidos.has(resultado.structuredContent?.id)) return;
     pedidoLeitura += 1;
-    if (ocupado || salvamentosPendentes || preparacaoPendente) { carregamentoPendente = resultado; return; }
+    if (ocupado || ditando || salvamentosPendentes || preparacaoPendente) { carregamentoPendente = resultado; return; }
     if (erroSalvamento) { mostrarErro(`O progresso não foi confirmado. Corrija o preenchimento e confirme o salvamento antes de trocar de formulário. ${erroSalvamento.message}`); return; }
     if (resultado.isError) {
       const mensagem = resultado.content?.find(item => item.type === 'text')?.text ?? 'Não foi possível abrir o formulário.';

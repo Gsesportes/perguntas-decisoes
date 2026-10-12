@@ -22,6 +22,40 @@ async function contexto() {
 }
 function entrada(raiz) { return raiz.querySelector('[data-perguntas]').descendentes().find(item => item.attrs.name === 'p1'); }
 
+test('ditado permite salvar outro campo e mantém o destino e a entrega protegidos', async () => {
+  const c = await contexto();
+  const processamento = promessaControlada();
+  try {
+    let consultas = 0;
+    const raiz = criarDomTeste();
+    const painel = montarInterface(raiz, { ...c.adaptar, ditado: async pedido => {
+      if (pedido.acao === 'iniciar') return { sessao: 'sessao-ficticia', estado: 'iniciando' };
+      if (pedido.acao === 'consultar') return consultas++ === 0 ? { estado: 'gravando' } : processamento.promessa;
+      return { estado: pedido.acao === 'parar' ? 'gravando' : 'concluido' };
+    } });
+    painel.carregar(c.A);
+    const campo = entrada(raiz), observacao = raiz.querySelector('#pd-obs-p1');
+    const microfone = raiz.querySelectorAll('[data-ditado]').find(item => item.attrs['aria-label'] === 'Ditar resposta da pergunta 1');
+    const ditando = microfone.disparar('click');
+    await aguardarFila();
+    assert.equal(campo.disabled, true); assert.equal(observacao.disabled, false);
+    assert.equal(raiz.querySelectorAll('[data-entrega]')[0].disabled, true);
+    observacao.value = 'Escrita enquanto a voz é processada';
+    observacao.events.input[0](); await aguardarFila();
+    await microfone.disparar('click');
+    assert.equal(microfone.parentElement.dataset.estado, 'encerrando');
+    assert.ok(microfone.innerHTML.includes('pd-giro'));
+    assert.equal(microfone.disabled, true);
+    processamento.resolver({ estado: 'concluido', texto: 'Resposta reconhecida fictícia' });
+    await ditando; await aguardarFila();
+    const salvo = (await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho;
+    assert.equal(salvo.respostas.p1, 'Resposta reconhecida fictícia');
+    assert.equal(salvo.observacoes.p1, 'Escrita enquanto a voz é processada');
+    assert.equal(campo.disabled, false); assert.equal(observacao.disabled, false);
+    assert.equal(microfone.parentElement.dataset.estado, 'pronto');
+  } finally { processamento.resolver({ estado: 'cancelado' }); c.banco.fechar(); }
+});
+
 test('Abertura manual sem resultado inicial consulta e mostra pendentes', async () => {
   const c = await contexto();
   try {

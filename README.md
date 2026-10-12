@@ -45,9 +45,9 @@ node scripts/instalar-desktop.mjs
 
 O instalador usa a CLI compatível fornecida pelo aplicativo, registra o catálogo e instala no perfil. O projeto não inclui nem altera o executável do Codex.
 
-Na fonte em validação, os componentes ficam em `%LOCALAPPDATA%/PerguntasDecisoes/componentes/<versão>`. O vínculo MCP aponta para essa cópia, fora do cache descartável do catálogo. Atualizar conserva versões anteriores para conexões que ainda as utilizam. Não são respostas nem histórico de áudio. A correção ainda não integra o ZIP público 0.3.5.
+Na fonte em validação, os componentes ficam em `%LOCALAPPDATA%/PerguntasDecisoes/componentes/<versão>`. O plugin fornece seu próprio servidor MCP, cujo capturador usa essa cópia fora do cache descartável. O instalador não cria uma segunda conexão global para a mesma ferramenta. Atualizar conserva componentes anteriores para conexões que ainda os utilizam. Não são respostas nem histórico de áudio. A correção ainda não integra o ZIP público 0.3.5.
 
-O vínculo fica na configuração local do computador; o caminho pessoal não faz parte do pacote distribuído. No catálogo pronto, `Instalar.cmd` executa esse mesmo instalador a partir da pasta extraída, sem etapa de construção. Uma versão existente com conteúdo diferente é recusada, preservando seus arquivos; alterações dos componentes precisam de nova versão.
+Os caminhos do perfil são resolvidos no computador; nenhum caminho pessoal faz parte do pacote distribuído. No catálogo pronto, `Instalar.cmd` executa esse mesmo instalador a partir da pasta extraída, sem etapa de construção. Uma versão existente com conteúdo diferente é recusada, preservando seus arquivos; alterações dos componentes precisam de nova versão.
 
 Selecione **Perguntas e decisões** no menu `@` da conversa. Para abrir manualmente: **Ferramentas → Mais ferramentas → Plugins e MCPs → Perguntas e decisões**. A localização do menu depende da versão do aplicativo.
 
@@ -93,9 +93,9 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 
 ## Ditado local nos campos
 
-Implementação em validação: a fala humana já produziu texto em uma resposta e em uma observação no painel nativo. A demora e o bloqueio do preenchimento durante a transcrição continuam pendentes de melhoria. Os botões usam reconhecimento local; a integração com o ditado nativo do Codex ainda não foi comprovada. O ZIP público 0.3.5 não contém esta evolução.
+Implementação em validação: a fala humana já produziu texto em resposta, observação individual e observações gerais no painel nativo, com entrega do conjunto ao chat. A fonte 0.3.6-ditado.6 acrescenta indicação animada, edição dos outros campos durante o processamento e até quatro tarefas de reconhecimento com o mesmo modelo; essas mudanças ainda dependem de prova na interface atualizada. Os botões usam reconhecimento local; a integração com o ditado nativo do Codex ainda não foi comprovada. O ZIP público 0.3.5 não contém esta evolução.
 
-No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o microfone ficar ativo e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O botão de cancelar ou a tecla Esc descarta o trecho. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
+No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o quadrado de parada com pulso e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O indicador giratório informa início, parada solicitada e processamento. O botão × ou a tecla Esc descarta o trecho. Depois de confirmar o início, outros campos continuam editáveis; o destino, a navegação e a entrega aguardam o ditado. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
 
 Prepare o reconhecimento uma vez por computador, pela fonte:
 

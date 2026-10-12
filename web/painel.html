@@ -57,10 +57,15 @@
 #perguntas-decisoes-app textarea { display:block; resize:vertical; min-height:38px; }
 #perguntas-decisoes-app .pd-ditado-campo { position:relative; }
 #perguntas-decisoes-app .pd-ditado-campo textarea { padding-right:40px; }
-#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] textarea { padding-right:72px; }
+#perguntas-decisoes-app .pd-ditado-campo[data-estado]:not([data-estado="pronto"]) textarea { padding-right:72px; }
 #perguntas-decisoes-app button.pd-microfone,#perguntas-decisoes-app button.pd-cancelar-ditado { position:absolute; right:5px; bottom:5px; width:28px; height:28px; min-height:28px; padding:4px; display:flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--pd-forte); border-radius:5px; }
 #perguntas-decisoes-app button.pd-cancelar-ditado { right:35px; font-size:21px; }
-#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] button.pd-microfone { background:var(--pd-forte); color:var(--pd-inverso); }
+#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] button.pd-microfone { background:var(--pd-forte); color:var(--pd-inverso); animation:pd-pulso 1.2s ease-in-out infinite; }
+#perguntas-decisoes-app .pd-microfone[aria-busy="true"]:disabled { opacity:1; }
+#perguntas-decisoes-app .pd-giro { animation:pd-giro .8s linear infinite; transform-origin:center; }
+@keyframes pd-giro { to { transform:rotate(360deg); } }
+@keyframes pd-pulso { 50% { box-shadow:0 0 0 3px color-mix(in srgb,var(--pd-forte) 30%,transparent); } }
+@media(prefers-reduced-motion:reduce) { #perguntas-decisoes-app .pd-giro,#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] button.pd-microfone { animation:none; } }
 #perguntas-decisoes-app textarea::placeholder { color:var(--pd-secundario); opacity:1; }
 #perguntas-decisoes-app .pd-gerais { padding:18px 22px; border-top:1px solid var(--pd-linha); }
 #perguntas-decisoes-app .pd-gerais label { display:block; margin-bottom:6px; font-weight:500; }

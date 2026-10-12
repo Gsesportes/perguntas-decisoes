@@ -19,7 +19,9 @@ Implementar “a transcrição nos campos de resposta e observação, sem mudar 
 - Liberar microfone antes da inferência. Usar stdin binário para o motor, sem criar WAV, arquivo de transcrição ou histórico de áudio.
 - No whisper.cpp 1.9.2, usar prefixo lógico de saída diferente de '-' e não habilitar formatos de arquivo. Isso conserva o retorno do texto pelo pipe no Windows, evitando a saída CON. Código de saída zero com texto vazio é erro da integração, sem atribuir automaticamente falta de fala ao usuário.
 - Acrescentar texto às respostas de tipo texto, observações individuais e observações gerais. Não converter fala em escolhas, datas, números ou notas por inferência.
-- Fixar formulário, pergunta, campo e valor original ao iniciar. Bloquear navegação e entrega durante o ditado; não aplicar retorno atrasado a outro campo ou a texto alterado.
+- Fixar formulário, pergunta, campo e valor original ao iniciar. Bloquear navegação, entrega e o campo de destino durante o ditado; após confirmar o início, os outros campos continuam editáveis e salváveis. Não aplicar retorno atrasado a outro campo ou a texto alterado. Mudança de versão causada apenas por outros campos não invalida o ditado; alteração do próprio destino, remoção do formulário ou preparação de entrega invalida.
+- Usar até quatro tarefas de reconhecimento, limitadas pela capacidade disponível, com o mesmo modelo e parâmetros de qualidade. Medir separadamente captura e transcrição; resultados de referência sintetizada não comprovam tempo com fala humana.
+- O botão mantém posição e dimensões: gravação confirmada tem quadrado de parada com pulso; início, parada solicitada e transcrição têm indicador giratório. O clique em parar muda a indicação imediatamente, antes da resposta MCP. Uma consulta atrasada de gravação não deve reativar Parar depois desse clique. Cancelar descarta; Parar transcreve. Respeitar preferência de redução de movimento e informar estados por texto acessível.
 - Preservar o texto existente. Validar limites antes de aplicar; excesso deve ser erro visível, sem truncamento.
 - Acrescentar somente controles pequenos de microfone dentro dos campos existentes. Preservar posições, dimensões, paginação, cores e botões de entrega.
 - Comandos de ditado privados da interface; áudio e transcrição intermediária fora do contexto do agente. O texto só integra a conversa pelas entregas já existentes e solicitadas pelo usuário.
@@ -42,11 +44,13 @@ Implementar “a transcrição nos campos de resposta e observação, sem mudar 
 | Modelo ou motor ausente | Erro visível com orientação de preparo; não iniciar captura |
 | Texto maior que o limite | Recusar inserção sem truncar ou apagar texto anterior |
 | Outra captura ativa | Recusar a segunda |
-| Troca de formulário ou versão durante a operação | Preservar campo e informar conflito |
+| Edição de outro campo durante a operação | Salvar normalmente e acrescentar o ditado ao destino original |
+| Alteração do próprio destino durante a operação | Preservar campo e informar conflito |
+| Troca de formulário durante a operação | Adiar a troca até concluir ou cancelar |
 | Falha, prazo ou saída inesperada do motor | Encerrar somente o filho próprio; erro visível |
 | Versão anterior ainda carregada | Relatar estado real; não declarar navegador externo como painel nativo |
 
-Durante a gravação, o controle existente mostra um quadrado de parada. Após erro, o rodapé mostra Ditado não aplicado. A mudança de desenho usa o mesmo botão, posição e dimensões; não altera o layout.
+Durante a gravação, o controle existente mostra um quadrado de parada com pulso. Durante início, parada solicitada e transcrição, mostra um indicador giratório e o rodapé informa o estado. Após erro, o rodapé mostra Ditado não aplicado. A mudança de desenho usa o mesmo botão, posição e dimensões; não altera o layout.
 
 ## Mapa dos arquivos
 
@@ -74,7 +78,8 @@ Durante a gravação, o controle existente mostra um quadrado de parada. Após e
 - [x] Criar formulário real de dez perguntas, com todos os tipos, observações e duas páginas.
 - [x] Abrir esse formulário na tela principal completa; abertura estrutural conferida no painel MCP nativo.
 - [x] Testar fala real na resposta e observação pelo painel MCP nativo; inserção observada, com problemas de demora e bloqueio.
-- [ ] Melhorar a demora e o bloqueio do preenchimento durante a transcrição, relatados no teste real.
+- [x] Implementar ajuste de paralelismo, estados animados e edição dos outros campos durante o ditado; fonte 0.3.6-ditado.6 com verificações complementares aprovadas.
+- [ ] Validar tempo, animação e edição dos outros campos com fala humana no painel atualizado; a conexão atual ainda entrega a iteração 5.
 - [ ] Verificar persistência, texto prévio e revisão manual.
 - [x] Executar lint e testes apropriados.
 - [x] Registrar evidências, arquivos e histórico parcial em Git local; conclusão depende da prova nativa.
@@ -86,6 +91,8 @@ Distinguir captura, reconhecimento, inserção no campo, salvamento e entrega. C
 Investigação complementar: o código do aplicativo contém ditado global com caminho para Windows e colagem de texto no destino em foco. A disponibilidade real, o acionamento no formulário e a integração com o botão do plugin precisam de prova separada. A presença do controlador não autoriza declarar integração nativa pronta nem substituir o comportamento implementado por uma chamada privada.
 
 ## Histórico de mudanças
+
+- 2026-10-12 — Recebido o conjunto real do teste de uma pergunta, com transcrição na resposta, observação individual e observações gerais, entregue ao chat; leitura posterior confirmou encerramento da retenção desse rascunho. Relatadas demora e ausência de indicação clara. Fonte 0.3.6-ditado.6 passa a usar até quatro tarefas do mesmo motor/modelo, pulso na gravação, indicador giratório desde o clique em parar e outros campos editáveis, preservando destino, navegação, entrega e conflitos do próprio campo. Referência local de 12,048 s foi processada em 5851 ms com duas tarefas e 4400 ms com quatro, com texto igual; não é medição de fala humana no painel. Lint e 61 verificações passaram; pacote completo instalado e servidor próprio iniciado pela consulta oficial independente. Reinstalação posterior foi recusada pelo Windows por arquivos em uso; arquivos necessários da iteração 6 foram conferidos. A conversa e a aba nativa continuam na iteração 5 mesmo após seleção por resposta assíncrona. Não declarar novos controles validados. Novo formulário de uma pergunta preparado para a próxima mensagem normal nesta mesma conversa. Nenhum reinício, novo chat, encerramento de processos ou publicação. Evidências e arquivos no relatório privado.
 
 - 2026-10-12 — Após reinício feito pelo usuário, a conexão própria carregou a versão 0.3.6-ditado.5 e abriu o formulário completo no painel nativo. Fala real foi transcrita na resposta da primeira pergunta e na observação da terceira, com Progresso guardado. Usuário confirmou o funcionamento, mas relatou demora excessiva e impossibilidade de preencher durante o processamento; esses pontos continuam pendentes. A pedido, criado e aberto outro formulário normal com uma única pergunta, resposta, observação individual, observações gerais e as entregas existentes. Duas entradas na barra lateral correspondem ao MCP próprio e ao vínculo legado ainda configurado; nenhuma remoção ou recarga global foi executada nesta rodada. Layout e código preservados. Registro detalhado no relatório privado; sem publicação.
 

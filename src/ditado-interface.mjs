@@ -5,6 +5,12 @@ export function acrescentarDitado({ original, atual, texto, limite = 16000 }) {
   if (combinado.length > limite) throw new Error('O ditado excede o limite do campo. O texto existente foi preservado.');
   return combinado;
 }
+export function faseDitado(estado, { cancelado = false, paradaSolicitada = false } = {}) {
+  if (!['iniciando', 'gravando', 'transcrevendo', 'concluido', 'cancelado'].includes(estado)) throw new Error('Estado do ditado não reconhecido.');
+  if (cancelado) return 'cancelando';
+  if (paradaSolicitada && ['iniciando', 'gravando'].includes(estado)) return 'encerrando';
+  return estado;
+}
 export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, antesDeIniciar, validarTexto, erro, estado }) {
   if (!adaptador.ditado) return { adicionar() {} };
   let ativo = null;
@@ -12,6 +18,7 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
   async function cancelar() {
     if (!ativo || ativo.cancelado) return;
     ativo.cancelado = true;
+    ativo.apresentar('cancelando');
     if (ativo.sessao) await adaptador.ditado({ acao: 'cancelar', sessao: ativo.sessao });
   }
   window.addEventListener('pagehide', () => { void cancelar().catch(falha => console.error('Cancelamento do ditado não confirmado:', falha.message)); });
@@ -24,31 +31,55 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
     campo.before(grupo); grupo.append(campo);
     const microfone = document.createElement('button');
     microfone.type = 'button'; microfone.className = 'pd-microfone cursor-interaction'; microfone.title = 'Ditar ' + descricao;
+    microfone.setAttribute('data-ditado', '');
     microfone.setAttribute('aria-label', 'Ditar ' + descricao);
     microfone.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
     const iconeMicrofone = microfone.innerHTML;
+    const iconeProgresso = '<svg class="pd-giro" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
     const descartar = document.createElement('button');
     descartar.type = 'button'; descartar.className = 'pd-cancelar-ditado cursor-interaction'; descartar.textContent = '×'; descartar.hidden = true;
-    descartar.setAttribute('aria-label', 'Cancelar ditado de ' + descricao); descartar.title = 'Cancelar ditado';
+    descartar.setAttribute('aria-label', 'Cancelar e descartar ditado de ' + descricao); descartar.title = 'Cancelar e descartar o áudio';
     grupo.append(microfone, descartar);
     descartar.addEventListener('click', () => { void cancelar().catch(falha => erro(falha.message)); });
     microfone.addEventListener('click', async () => {
       if (ativo) {
-        if (ativo.botao === microfone && ativo.sessao) {
-          microfone.disabled = true;
+        if (ativo.botao === microfone && ativo.sessao && !ativo.paradaSolicitada && !ativo.cancelado) {
+          ativo.paradaSolicitada = true;
+          ativo.apresentar('encerrando');
           try { await adaptador.ditado({ acao: 'parar', sessao: ativo.sessao }); }
           catch (falha) { erro(falha.message); await cancelar(); }
         }
         return;
       }
       const origem = contexto();
-      const operacao = { origem, campo, original: campo.value, botao: microfone, sessao: null, cancelado: false };
-      ativo = operacao; bloquear(true); erro(''); estado('Iniciando microfone…');
-      microfone.disabled = true; descartar.hidden = false; descartar.disabled = false;
+      const operacao = { origem, campo, original: campo.value, botao: microfone, sessao: null, cancelado: false, paradaSolicitada: false };
+      function apresentar(fase) {
+        grupo.dataset.estado = fase;
+        const gravando = fase === 'gravando';
+        grupo.dataset.gravando = String(gravando);
+        microfone.innerHTML = gravando ? '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>' : iconeProgresso;
+        microfone.disabled = !gravando;
+        microfone.setAttribute('aria-busy', String(!gravando));
+        microfone.setAttribute('aria-pressed', String(gravando));
+        const nomes = { iniciando: 'Iniciando microfone', gravando: 'Parar gravação e transcrever', encerrando: 'Encerrando gravação', transcrevendo: 'Transcrevendo', cancelando: 'Cancelando e descartando' };
+        microfone.setAttribute('aria-label', nomes[fase] + ' ' + descricao);
+        microfone.title = nomes[fase];
+        descartar.disabled = fase === 'cancelando';
+        if (gravando) operacao.inicioGravacao ??= Date.now();
+        if (fase === 'transcrevendo') operacao.inicioTranscricao ??= Date.now();
+        const segundos = inicio => Math.floor((Date.now() - inicio) / 1000);
+        estado(gravando ? `Gravando · ${segundos(operacao.inicioGravacao)} s · parar transcreve; × cancela` : fase === 'transcrevendo' ? `Transcrevendo no computador… ${segundos(operacao.inicioTranscricao)} s` : nomes[fase] + '…');
+      }
+      operacao.apresentar = apresentar;
+      ativo = operacao; bloquear(true, campo, true); erro('');
+      descartar.hidden = false;
+      apresentar('iniciando');
       try {
         await antesDeIniciar();
         const iniciado = await adaptador.ditado({ acao: 'iniciar', destino: { id: origem.id, versao: origem.versao, ...destino } });
         operacao.sessao = iniciado.sessao;
+        bloquear(true, campo);
+        apresentar(faseDitado(iniciado.estado, operacao));
         if (operacao.cancelado) await adaptador.ditado({ acao: 'cancelar', sessao: operacao.sessao });
         for (;;) {
           const resposta = await adaptador.ditado({ acao: 'consultar', sessao: operacao.sessao });
@@ -59,17 +90,12 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
             if (contexto() !== origem || !campo.isConnected) throw new Error('A pergunta mudou. O retorno do ditado não foi aplicado.');
             const combinado = acrescentarDitado({ original: operacao.original, atual: campo.value, texto: resposta.texto });
             validarTexto(destino, combinado);
-            bloquear(false); campo.value = combinado;
+            campo.value = combinado;
             campo.dispatchEvent(new window.Event('input', { bubbles: true }));
             estado('Ditado inserido; revise o texto');
             break;
           }
-          const gravando = resposta.estado === 'gravando';
-          microfone.innerHTML = gravando ? '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>' : iconeMicrofone;
-          microfone.disabled = !gravando; microfone.setAttribute('aria-label', gravando ? 'Parar ditado de ' + descricao : 'Processando ditado de ' + descricao);
-          microfone.title = gravando ? 'Parar e transcrever' : 'Processando…';
-          grupo.dataset.gravando = String(gravando);
-          estado(gravando ? 'Ouvindo… clique no microfone para parar (até 60 s)' : resposta.estado === 'transcrevendo' ? 'Transcrevendo no computador…' : 'Iniciando microfone…');
+          apresentar(faseDitado(resposta.estado, operacao));
           await pausa();
         }
       } catch (falha) { estado('Ditado não aplicado'); erro('Ditado não aplicado. ' + falha.message); }
@@ -80,8 +106,9 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
             else await adaptador.ditado({ acao: 'descartar', sessao: operacao.sessao });
           } catch (falha) { erro('Limpeza do ditado não confirmada: ' + falha.message); }
         }
-        ativo = null; grupo.dataset.gravando = 'false'; descartar.hidden = true;
+        ativo = null; grupo.dataset.gravando = 'false'; grupo.dataset.estado = 'pronto'; descartar.hidden = true;
         microfone.innerHTML = iconeMicrofone;
+        microfone.removeAttribute('aria-busy'); microfone.removeAttribute('aria-pressed');
         microfone.setAttribute('aria-label', 'Ditar ' + descricao); microfone.title = 'Ditar ' + descricao;
         bloquear(false);
       }

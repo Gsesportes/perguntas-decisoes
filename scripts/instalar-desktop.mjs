@@ -118,10 +118,7 @@ export function instalarDesktop({ raiz, verificar = false, ambiente = process.en
   if (instalacao.version !== catalogo.versao || !instalacao.installedPath) throw new Error('A versão instalada não foi confirmada pelo Codex.');
   const servidor = componentes.servidor;
   if (!existsSync(servidor)) throw new Error('O servidor instalado não foi encontrado.');
-  execFileSync(motor, ['mcp', 'add', 'perguntas_decisoes_local', '--', process.execPath, servidor], { stdio: 'pipe', windowsHide: true });
-  const vinculo = executarJson(['mcp', 'get', 'perguntas_decisoes_local', '--json']);
-  if (!vinculo.enabled || vinculo.transport?.args?.[0] !== servidor) throw new Error('O vínculo local do servidor não foi confirmado.');
-  return { ...plano, instalado: true, componentesPersistentes: true, conexaoAtivaVerificada: false, aplicativoReiniciado: false };
+  return { ...plano, instalado: true, componentesPersistentes: true, servidorFornecidoPeloPlugin: true, conexaoAtivaVerificada: false, aplicativoReiniciado: false };
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {

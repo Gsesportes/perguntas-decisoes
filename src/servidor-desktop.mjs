@@ -10,7 +10,7 @@ import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
 import { FERRAMENTA_DITADO, criarServicoDitado } from './ditado-desktop.mjs';
 
 const armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS_DIRETORIO_DADOS });
-const versaoPlugin = '0.3.6-ditado.5';
+const versaoPlugin = '0.3.6-ditado.6';
 const capturador = join(process.env.LOCALAPPDATA, 'PerguntasDecisoes', 'componentes', versaoPlugin, 'native/CapturaMicrofone.exe');
 const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono, executavel: capturador });
 const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO];

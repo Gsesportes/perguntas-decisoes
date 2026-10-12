@@ -2,7 +2,7 @@
 titulo: 'Ditado nos campos de resposta e observação'
 tipo: 'funcionalidade'
 criado: '2026-10-12'
-estado: 'em-implementacao'
+estado: 'em-validacao-no-formulario-completo'
 contexto: []
 ---
 
@@ -64,7 +64,7 @@ Implementar “a transcrição nos campos de resposta e observação, sem mudar 
 - [ ] Conferir limites, concorrência, retenção e erros.
 - [x] Construir e instalar somente o próprio plugin.
 - [x] Criar formulário real de dez perguntas, com todos os tipos, observações e duas páginas.
-- [ ] Abrir esse formulário na tela principal completa; não substituir pelo diagnóstico de áudio.
+- [x] Abrir esse formulário na tela principal completa; abertura estrutural conferida no painel MCP nativo.
 - [ ] Testar fala real na resposta e observação pelo painel MCP nativo.
 - [ ] Verificar persistência, texto prévio e revisão manual.
 - [x] Executar lint e testes apropriados.
@@ -80,4 +80,6 @@ Distinguir captura, reconhecimento, inserção no campo, salvamento e entrega. C
 - 2026-10-12 — Implementados captura até sessenta segundos, parada, cancelamento, transcrição local em memória e microfones nos campos. Motor v1.9.2 e modelo base preparados com hashes; versão 0.3.6-ditado.2 construída e instalada. Lint, 51 verificações e protocolo em banco isolado aprovados. A conexão ativa continuou no diagnóstico anterior mesmo após seleção do plugin; fala real, inserção e validação visual da nova interface permanecem pendentes. Sem reinício do aplicativo, recarga global ou publicação. Evidências em docs/evidencias/ditado-20261012/RELATORIO.md.
 - 2026-10-12 — Conferência posterior à instalação da iteração 2 continuou retornando o diagnóstico anterior. Fonte registrada em branch local e auditada sem referências particulares; provas privadas preservadas separadamente. Próxima tentativa depende de nova mensagem comum nesta conversa, sem garantia antecipada de recarga; aceite de fala real permanece aberto.
 - 2026-10-12 — Usuário exigiu a tela completa do plugin. Corrigido vínculo principal que apontava para arquivo ausente da 0.3.5, com erro confirmado no log. Criado pelo MCP real o formulário Perguntas e decisões — teste completo, com identificador registrado na evidência privada, dez perguntas de todos os tipos, duas páginas, versão de rascunho 1 e nenhuma resposta pré-selecionada. Usuário informou recarga de MCPs; a execução ativa ainda não dispõe do cliente principal pronto. Abertura visual e teste de fala permanecem pendentes; não criar nova versão isolada de áudio nem duplicar o formulário.
+- 2026-10-12 — Após reinício informado pelo próprio usuário, aberta e conferida estruturalmente a tela principal completa, com perguntas, escolhas e microfones. Primeira tentativa de ditado no campo falhou ao abrir o dispositivo (código WinMM 1); aberturas diretas sem captura passaram. Repetição manual solicitada; reconhecimento, inserção, persistência e correção do status de erro permanecem pendentes. Captura de tela indisponível por timeout da automação; nenhum novo reinício do aplicativo ou mudança de permissões executado pelo agente.
+- 2026-10-12 — Componente instalado capturou e encerrou 261 ms por execução direta, sem reconhecimento ou retenção, enquanto a repetição de fala no painel aguardava resposta. Comparações de permissões, identidade de pacote e integridade dos processos não explicaram a diferença; causa não atribuída por hipótese. Corrigida na fonte a mensagem do rodapé após falha, com lint e 21 verificações aprovados; correção de texto ainda não instalada na aba em teste. Transcrição real nos campos permanece sem aceite.
 

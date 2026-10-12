@@ -70,7 +70,7 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
           estado(gravando ? 'Ouvindo… clique no microfone para parar (até 60 s)' : resposta.estado === 'transcrevendo' ? 'Transcrevendo no computador…' : 'Iniciando microfone…');
           await pausa();
         }
-      } catch (falha) { erro('Ditado não aplicado. ' + falha.message); }
+      } catch (falha) { estado('Ditado não aplicado'); erro('Ditado não aplicado. ' + falha.message); }
       finally {
         if (operacao.sessao) {
           try {

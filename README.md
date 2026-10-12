@@ -93,7 +93,7 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 
 ## Ditado local nos campos
 
-Implementação em validação: o reconhecimento local controlado devolveu texto, mas a fala humana no formulário nativo ainda não recebeu aceite. O ZIP público 0.3.5 não contém esta evolução.
+Implementação em validação: a fala humana já produziu texto em uma resposta e em uma observação no painel nativo. A demora e o bloqueio do preenchimento durante a transcrição continuam pendentes de melhoria. Os botões usam reconhecimento local; a integração com o ditado nativo do Codex ainda não foi comprovada. O ZIP público 0.3.5 não contém esta evolução.
 
 No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o microfone ficar ativo e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O botão de cancelar ou a tecla Esc descarta o trecho. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
 

@@ -73,7 +73,8 @@ Durante a gravação, o controle existente mostra um quadrado de parada. Após e
 - [x] Corrigir o manifesto e comprovar pelo leitor e status oficiais do Codex o registro e início do MCP próprio; isso não equivale ao carregamento deste painel.
 - [x] Criar formulário real de dez perguntas, com todos os tipos, observações e duas páginas.
 - [x] Abrir esse formulário na tela principal completa; abertura estrutural conferida no painel MCP nativo.
-- [ ] Testar fala real na resposta e observação pelo painel MCP nativo.
+- [x] Testar fala real na resposta e observação pelo painel MCP nativo; inserção observada, com problemas de demora e bloqueio.
+- [ ] Melhorar a demora e o bloqueio do preenchimento durante a transcrição, relatados no teste real.
 - [ ] Verificar persistência, texto prévio e revisão manual.
 - [x] Executar lint e testes apropriados.
 - [x] Registrar evidências, arquivos e histórico parcial em Git local; conclusão depende da prova nativa.
@@ -85,6 +86,8 @@ Distinguir captura, reconhecimento, inserção no campo, salvamento e entrega. C
 Investigação complementar: o código do aplicativo contém ditado global com caminho para Windows e colagem de texto no destino em foco. A disponibilidade real, o acionamento no formulário e a integração com o botão do plugin precisam de prova separada. A presença do controlador não autoriza declarar integração nativa pronta nem substituir o comportamento implementado por uma chamada privada.
 
 ## Histórico de mudanças
+
+- 2026-10-12 — Após reinício feito pelo usuário, a conexão própria carregou a versão 0.3.6-ditado.5 e abriu o formulário completo no painel nativo. Fala real foi transcrita na resposta da primeira pergunta e na observação da terceira, com Progresso guardado. Usuário confirmou o funcionamento, mas relatou demora excessiva e impossibilidade de preencher durante o processamento; esses pontos continuam pendentes. A pedido, criado e aberto outro formulário normal com uma única pergunta, resposta, observação individual, observações gerais e as entregas existentes. Duas entradas na barra lateral correspondem ao MCP próprio e ao vínculo legado ainda configurado; nenhuma remoção ou recarga global foi executada nesta rodada. Layout e código preservados. Registro detalhado no relatório privado; sem publicação.
 
 - 2026-10-12 — Escopo autorizado; iniciada implementação local de ditado preservando layout e aplicativo aberto.
 - 2026-10-12 — Implementados captura até sessenta segundos, parada, cancelamento, transcrição local em memória e microfones nos campos. Motor v1.9.2 e modelo base preparados com hashes; versão 0.3.6-ditado.2 construída e instalada. Lint, 51 verificações e protocolo em banco isolado aprovados. A conexão ativa continuou no diagnóstico anterior mesmo após seleção do plugin; fala real, inserção e validação visual da nova interface permanecem pendentes. Sem reinício do aplicativo, recarga global ou publicação. Evidências em docs/evidencias/ditado-20261012/RELATORIO.md.

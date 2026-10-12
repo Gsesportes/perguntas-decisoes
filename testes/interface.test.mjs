@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { montarInterface } from '../src/interface.mjs';
+import { montarInterface, coordenarCargaInicial } from '../src/interface.mjs';
 import { chamarFerramenta } from '../src/servidor.mjs';
 import { bancoLocal } from '../scripts/banco-local.mjs';
 import { criarDomTeste, aguardarFila, promessaControlada } from './apoio-dom.mjs';
@@ -16,11 +16,47 @@ async function contexto() {
     preparar: async (id, versao, rascunho, ...extra) => { const resposta = await chamarFerramenta('preparar_entrega', { id, versao, rascunho, ...(extra[1] ? { idempotencia: extra[1] } : {}) }, dono, banco); return { ...resposta._meta.entrega, versao: resposta._meta.versao }; },
     concluir: (id, token) => chamarFerramenta('confirmar_entrega', { id, token }, dono, banco),
     retomar: async (id, token) => (await chamarFerramenta('retomar_edicao', { id, token }, dono, banco))._meta.versao,
-    listar: cursor => chamarFerramenta('listar_pendentes', { cursor }, dono, banco)
+    listar: cursor => chamarFerramenta('listar_pendentes', cursor === undefined ? {} : { cursor }, dono, banco)
   };
   return { banco, dono, A, B, adaptar };
 }
 function entrada(raiz) { return raiz.querySelector('[data-perguntas]').descendentes().find(item => item.attrs.name === 'p1'); }
+
+test('Abertura manual sem resultado inicial consulta e mostra pendentes', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar);
+    const carga = coordenarCargaInicial({ carregar: painel.carregar, listar: () => c.adaptar.listar(), mostrarErro: painel.mostrarErro });
+    carga.receber({ content: [] });
+    await carga.iniciar();
+    assert.equal(raiz.querySelector('[data-pendentes]').hidden, false);
+    assert.equal(raiz.querySelector('[data-pendentes]').descendentes().filter(item => item.tag === 'button').length, 2);
+  } finally { c.banco.fechar(); }
+});
+
+test('Resultado recebido durante a abertura prevalece sobre a lista tardia', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar);
+    let liberar;
+    const lista = new Promise(resolver => { liberar = resolver; });
+    const carga = coordenarCargaInicial({ carregar: painel.carregar, listar: () => lista, mostrarErro: painel.mostrarErro });
+    const iniciando = carga.iniciar();
+    carga.receber(c.A);
+    liberar(await c.adaptar.listar());
+    await iniciando;
+    assert.equal(raiz.querySelector('[data-titulo]').textContent, 'A');
+    assert.equal(raiz.querySelector('[data-formulario]').hidden, false);
+  } finally { c.banco.fechar(); }
+});
+
+test('Abertura sem conteúdo utilizável informa erro em vez de permanecer vazia', async () => {
+  const erros = [];
+  const carga = coordenarCargaInicial({ carregar: () => assert.fail('Não deve carregar conteúdo ausente.'), listar: async () => ({ content: [] }), mostrarErro: erro => erros.push(erro) });
+  await carga.iniciar();
+  assert.equal(erros.length, 1);
+  assert.match(erros[0], /não devolveu o conteúdo/);
+});
 
 test('Preparação ambígua não pode ser descongelada por leitura antiga', async () => {
   const c = await contexto();

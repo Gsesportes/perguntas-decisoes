@@ -28,9 +28,9 @@ await writeFile(new URL('THIRD_PARTY_NOTICES.txt', pacote), await avisosTerceiro
 const interfacePlugin = { displayName: 'Perguntas e decisões', shortDescription: 'Perguntas e escolhas em lote', longDescription: 'Formulários locais com observações e entrega na conversa.', category: 'Productivity', capabilities: ['Interactive'], defaultPrompt: 'Crie um formulário para reunir as perguntas deste assunto.', logo: './assets/logo-verde.png', composerIcon: './assets/icone-128.png', brandColor: '#007568', brandColorDark: '#8AD7BF' };
 const versao = JSON.parse(await readFile(new URL('package.json', raiz), 'utf8')).version;
 const manifesto = { $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json', name: 'perguntas-decisoes', version: versao, description: 'Perguntas e decisões em lote no aplicativo desktop.', extensions: { 'com.openai': { interface: interfacePlugin } } };
-const mcp = { $schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json', mcpServers: { perguntas: { type: 'stdio', command: 'node', args: ['server/servidor.mjs'], cwd: '.' } } };
+const mcp = { $schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json', mcpServers: { perguntas: { type: 'stdio', command: 'node', args: ['server/servidor.mjs'], cwd: './' } } };
 const compativel = { name: manifesto.name, version: manifesto.version, description: manifesto.description, mcpServers: './.mcp.json', skills: './skills', interface: interfacePlugin };
-const mcpCompativel = { mcpServers: { perguntas: { command: 'node', args: ['server/servidor.mjs'], cwd: '.' } } };
+const mcpCompativel = { mcpServers: { perguntas: { command: 'node', args: ['server/servidor.mjs'], cwd: './' } } };
 const catalogo = { name: 'perguntas-decisoes-local', interface: { displayName: 'Perguntas e decisões — local' }, plugins: [{ name: manifesto.name, source: { source: 'local', path: './plugins/perguntas-decisoes' }, policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Productivity' }] };
 for (const [arquivo, dados] of [['plugin.json', manifesto], ['mcp.json', mcp], ['.mcp.json', mcpCompativel], ['.codex-plugin/plugin.json', compativel]]) await writeFile(new URL(arquivo, pacote), JSON.stringify(dados, null, 2) + '\n');
 await writeFile(new URL('pacote/.agents/plugins/marketplace.json', raiz), JSON.stringify(catalogo, null, 2) + '\n');

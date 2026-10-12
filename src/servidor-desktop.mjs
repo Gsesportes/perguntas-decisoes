@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListResourceTemplatesRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -9,12 +10,14 @@ import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
 import { FERRAMENTA_DITADO, criarServicoDitado } from './ditado-desktop.mjs';
 
 const armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS_DIRETORIO_DADOS });
-const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono });
+const versaoPlugin = '0.3.6-ditado.5';
+const capturador = join(process.env.LOCALAPPDATA, 'PerguntasDecisoes', 'componentes', versaoPlugin, 'native/CapturaMicrofone.exe');
+const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono, executavel: capturador });
 const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO];
 const html = readFileSync(new URL('../dist/web/painel.html', import.meta.url), 'utf8');
 const imagemIcone = readFileSync(new URL('../assets/icone-128.png', import.meta.url));
 const icones = [{ src: `data:image/png;base64,${imagemIcone.toString('base64')}`, mimeType: 'image/png', sizes: ['128x128'] }];
-const servidor = new Server({ name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.3.6-ditado.3', icons: icones }, { capabilities: { tools: {}, resources: {} } });
+const servidor = new Server({ name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: versaoPlugin, icons: icones }, { capabilities: { tools: {}, resources: {} } });
 servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: ferramentas }));
 servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));

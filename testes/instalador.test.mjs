@@ -19,6 +19,9 @@ test('Instalador confere catálogo completo e recusa identidade ou comando inesp
     await writeFile(arquivo, JSON.stringify(mcp));
     assert.throws(() => validarCatalogo(pasta), /não corresponde ao servidor/);
     mcp.mcpServers.perguntas.args[0] = 'server/servidor.mjs'; await writeFile(arquivo, JSON.stringify(mcp));
+    mcp.mcpServers.perguntas.cwd = '.'; await writeFile(arquivo, JSON.stringify(mcp));
+    assert.throws(() => validarCatalogo(pasta), /não corresponde ao servidor/);
+    mcp.mcpServers.perguntas.cwd = './'; await writeFile(arquivo, JSON.stringify(mcp));
     await writeFile(join(pasta, '.agents/plugins/marketplace.json'), JSON.stringify({ name: 'outro' }));
     assert.throws(() => validarCatalogo(pasta), /identidade/);
   } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + sep)); await rm(pasta, { recursive: true, force: true }); }

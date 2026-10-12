@@ -29,7 +29,7 @@ export function validarCatalogo(pasta) {
   if (catalogo.plugins?.length !== 1 || catalogo.plugins[0].source?.path !== './plugins/perguntas-decisoes') throw new Error('O catálogo não corresponde a este plugin.');
   for (const nome of ['mcp.json', '.mcp.json']) {
     const servidor = lerJson(join(raiz, 'plugins/perguntas-decisoes', nome)).mcpServers?.perguntas;
-    if (servidor?.command !== 'node' || servidor.args?.length !== 1 || servidor.args[0] !== 'server/servidor.mjs' || servidor.cwd !== '.') throw new Error('O comando do pacote não corresponde ao servidor local esperado.');
+    if (servidor?.command !== 'node' || servidor.args?.length !== 1 || servidor.args[0] !== 'server/servidor.mjs' || servidor.cwd !== './') throw new Error('O comando do pacote não corresponde ao servidor local esperado.');
   }
   return { raiz, versao: plugin.version };
 }

@@ -1,10 +1,10 @@
 import { App, applyDocumentTheme, applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
 import { OpenAIExtensions } from '@openai/mcp-extensions/app';
-import { montarInterface } from './interface.mjs';
+import { montarInterface, coordenarCargaInicial } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.3' });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.5' });
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);
@@ -22,17 +22,18 @@ const adaptador = {
   concluir: (id, token) => chamar('confirmar_entrega', { id, token }),
   retomar: async (id, token) => (await chamar('retomar_edicao', { id, token }))._meta.versao,
   ler: id => chamar('ler_formulario', { id }),
-  listar: cursor => chamar('listar_pendentes', { cursor }),
+  listar: cursor => chamar('listar_pendentes', cursor === undefined ? {} : { cursor }),
   ditado: async entrada => (await chamar('controlar_ditado', entrada))._meta
 };
 const interfaceUsuario = montarInterface(document.getElementById('perguntas-decisoes-app'), adaptador);
+const cargaInicial = coordenarCargaInicial({ carregar: interfaceUsuario.carregar, listar: () => adaptador.listar(), mostrarErro: interfaceUsuario.mostrarErro });
 function aplicarTema() {
   const contexto = aplicativo.getHostContext();
   if (contexto?.theme) applyDocumentTheme(contexto.theme);
   if (contexto?.styles?.variables) applyHostStyleVariables(contexto.styles.variables);
   interfaceUsuario.atualizarNavegacao();
 }
-aplicativo.ontoolresult = resultado => interfaceUsuario.carregar(resultado);
+aplicativo.ontoolresult = resultado => cargaInicial.receber(resultado);
 aplicativo.addEventListener('hostcontextchanged', aplicarTema);
 if (window.parent === window) {
   adaptador.conexao = 'Abra este painel pelo plugin conectado ao Codex ou ao ChatGPT. Não há conexão com uma conversa nesta página isolada.';
@@ -43,6 +44,7 @@ if (window.parent === window) {
     aplicarTema();
     const contexto = aplicativo.getHostContext();
     if (contexto?.displayMode === 'inline' && contexto.availableDisplayModes?.includes('fullscreen')) await aplicativo.requestDisplayMode({ mode: 'fullscreen' });
+    await cargaInicial.iniciar();
   } catch (erro) {
     adaptador.conexao = 'Conexão com o aplicativo não confirmada. Nenhuma entrega foi realizada.';
     interfaceUsuario.mostrarErro(`${adaptador.conexao} ${erro.message}`);

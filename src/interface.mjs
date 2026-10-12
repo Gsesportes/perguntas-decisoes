@@ -1,6 +1,30 @@
 import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega } from './formulario.mjs';
 import { criarDitadoInterface } from './ditado-interface.mjs';
 
+export function coordenarCargaInicial({ carregar, listar, mostrarErro }) {
+  let recebeuResultado = false;
+  let iniciou = false;
+  return {
+    receber(resultado) {
+      if (!resultado?.isError && !resultado?._meta?.formulario && !Array.isArray(resultado?._meta?.pendentes)) return;
+      recebeuResultado = true;
+      carregar(resultado);
+    },
+    async iniciar() {
+      if (recebeuResultado || iniciou) return;
+      iniciou = true;
+      try {
+        const resultado = await listar();
+        if (recebeuResultado) return;
+        if (!Array.isArray(resultado?._meta?.pendentes)) throw new Error('O servidor não devolveu o conteúdo do painel.');
+        carregar(resultado);
+      } catch (erro) {
+        if (!recebeuResultado) mostrarErro('Não foi possível carregar os formulários. ' + erro.message);
+      }
+    }
+  };
+}
+
 function elemento(tag, atributos = {}, conteudo) {
   const item = document.createElement(tag);
   for (const [chave, valor] of Object.entries(atributos)) item.setAttribute(chave, String(valor));

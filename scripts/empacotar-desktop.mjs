@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { avisosTerceiros } from './avisos-terceiros.mjs';
@@ -17,7 +17,8 @@ await build({ entryPoints: [fileURLToPath(new URL('src/servidor-desktop.mjs', ra
 await copyFile(new URL('dist/web/painel.html', raiz), new URL('dist/web/painel.html', pacote));
 await copyFile(new URL('native/CapturaMicrofone.exe', raiz), new URL('native/CapturaMicrofone.exe', pacote));
 await copyFile(new URL('scripts/preparar-ditado.mjs', raiz), new URL('server/preparar-ditado.mjs', pacote));
-if (process.env.PERGUNTAS_INCLUIR_DIAGNOSTICO === '1') await copyFile(new URL('server/servidor.mjs', pacote), new URL('server/diagnostico-microfone.mjs', pacote));
+try { await unlink(new URL('server/diagnostico-microfone.mjs', pacote)); }
+catch (erro) { if (erro.code !== 'ENOENT') throw erro; }
 await copyFile(new URL('migracoes/0001_rascunhos.sql', raiz), new URL('migracoes/0001_rascunhos.sql', pacote));
 await copyFile(new URL('skills/usar-painel-preservando-chat/SKILL.md', raiz), new URL('skills/usar-painel-preservando-chat/SKILL.md', pacote));
 await copyFile(new URL('assets/logo-verde.png', raiz), new URL('assets/logo-verde.png', pacote));

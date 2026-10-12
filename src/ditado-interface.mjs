@@ -26,6 +26,7 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
     microfone.type = 'button'; microfone.className = 'pd-microfone cursor-interaction'; microfone.title = 'Ditar ' + descricao;
     microfone.setAttribute('aria-label', 'Ditar ' + descricao);
     microfone.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+    const iconeMicrofone = microfone.innerHTML;
     const descartar = document.createElement('button');
     descartar.type = 'button'; descartar.className = 'pd-cancelar-ditado cursor-interaction'; descartar.textContent = '×'; descartar.hidden = true;
     descartar.setAttribute('aria-label', 'Cancelar ditado de ' + descricao); descartar.title = 'Cancelar ditado';
@@ -64,6 +65,7 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
             break;
           }
           const gravando = resposta.estado === 'gravando';
+          microfone.innerHTML = gravando ? '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg>' : iconeMicrofone;
           microfone.disabled = !gravando; microfone.setAttribute('aria-label', gravando ? 'Parar ditado de ' + descricao : 'Processando ditado de ' + descricao);
           microfone.title = gravando ? 'Parar e transcrever' : 'Processando…';
           grupo.dataset.gravando = String(gravando);
@@ -79,6 +81,7 @@ export function criarDitadoInterface({ raiz, adaptador, contexto, bloquear, ante
           } catch (falha) { erro('Limpeza do ditado não confirmada: ' + falha.message); }
         }
         ativo = null; grupo.dataset.gravando = 'false'; descartar.hidden = true;
+        microfone.innerHTML = iconeMicrofone;
         microfone.setAttribute('aria-label', 'Ditar ' + descricao); microfone.title = 'Ditar ' + descricao;
         bloquear(false);
       }

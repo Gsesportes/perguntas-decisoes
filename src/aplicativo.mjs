@@ -4,7 +4,7 @@ import { montarInterface } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.2' });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.3' });
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);

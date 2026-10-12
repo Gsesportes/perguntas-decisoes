@@ -84,8 +84,14 @@ function capturar(sessao, executavel, duracao = 60000) {
     });
   });
 }
+export function argumentosReconhecimento({ modelo }) {
+  // A entrada '-' também vira o nome de saída padrão no whisper.cpp 1.9.2.
+  // No Windows isso seleciona CON e desativa o retorno pelo pipe. Um prefixo
+  // explícito mantém o retorno normal; sem -otxt/-oj nenhum arquivo é criado.
+  return ['-m', modelo, '-l', 'pt', '-f', '-', '-nt', '-np', '-ng', '-t', '2', '-sns', '-of', 'ditado-local'];
+}
 function reconhecer(sessao, motor, wav) {
-  const filho = spawn(motor.executavel, ['-m', motor.modelo, '-l', 'pt', '-f', '-', '-nt', '-np', '-ng', '-t', '2', '-sns'], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+  const filho = spawn(motor.executavel, argumentosReconhecimento(motor), { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
   sessao.transcritor = filho;
   let texto = '', diagnostico = '', falha;
   const limite = setTimeout(() => { falha = 'A transcrição excedeu dois minutos.'; filho.kill(); }, 120000);
@@ -101,7 +107,8 @@ function reconhecer(sessao, motor, wav) {
       if (sessao.cancelado) { rejeitar(new Error('Ditado cancelado.')); return; }
       if (falha || codigo !== 0) { rejeitar(new Error(falha ?? 'Transcrição não confirmada: ' + diagnostico)); return; }
       const limpo = texto.trim();
-      if (!limpo || /^\[(?:BLANK_AUDIO|silence)\]$/i.test(limpo)) { rejeitar(new Error('Nenhuma fala foi reconhecida. O campo foi preservado.')); return; }
+      if (!limpo) { rejeitar(new Error('O motor terminou sem devolver texto. O campo foi preservado.')); return; }
+      if (/^\[(?:BLANK_AUDIO|silence)\]$/i.test(limpo)) { rejeitar(new Error('Nenhuma fala foi reconhecida. O campo foi preservado.')); return; }
       resolver(limpo);
     });
   });

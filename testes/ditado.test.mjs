@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { acrescentarDitado } from '../src/ditado-interface.mjs';
-import { empacotarWav, validarDestino } from '../src/ditado-desktop.mjs';
+import { argumentosReconhecimento, empacotarWav, validarDestino } from '../src/ditado-desktop.mjs';
 
 test('ditado acrescenta texto e preserva o conteúdo anterior', () => {
   assert.equal(acrescentarDitado({ original: 'Texto anterior.', atual: 'Texto anterior.', texto: ' Nova fala. ' }), 'Texto anterior. Nova fala.');
@@ -26,5 +26,12 @@ test('destino precisa indicar formulário, versão e pergunta quando individual'
   assert.throws(() => validarDestino({ id: 'teste', versao: 1, campo: 'numero', pergunta: 'p1' }), /campo/);
   assert.doesNotThrow(() => validarDestino({ id: 'teste', versao: 1, campo: 'observacao', pergunta: 'p1' }));
   assert.doesNotThrow(() => validarDestino({ id: 'teste', versao: 1, campo: 'gerais' }));
+});
+
+test('entrada por pipe mantém saída de texto capturável no Windows, sem arquivos', () => {
+  const argumentos = argumentosReconhecimento({ modelo: 'modelo-local.bin' });
+  assert.equal(argumentos[argumentos.indexOf('-f') + 1], '-');
+  assert.notEqual(argumentos[argumentos.indexOf('-of') + 1], '-');
+  for (const proibido of ['-otxt', '-oj', '-ojf', '-osrt', '-ovtt']) assert.equal(argumentos.includes(proibido), false);
 });
 

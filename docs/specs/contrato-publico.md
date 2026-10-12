@@ -29,6 +29,8 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Reserva de transporte 8.000.000 bytes para recusa controlada; não truncar texto.
 - Pacote resolve Node no destino e diagnóstico inicia o comando do manifesto.
 - Instalação distribuída por GitHub com catálogo pronto e Instalar.cmd. Requer Windows, Node 24 e Codex desktop; o instalador verifica os requisitos antes de copiar arquivos, preserva registros existentes e não reinicia o aplicativo.
+- O vínculo MCP aponta para componentes versionados em pasta própria do perfil, fora do cache descartável de plugins. Atualizações conservam versões anteriores; não substituir arquivos de uma mesma versão por conteúdo diferente. Conferir marcadores de propriedade e recusar links simbólicos.
+- Instalação e escrita do vínculo não comprovam recarga da conexão já aberta. Informar essa fronteira; não prometer que fechar somente a aba atualiza o servidor nem orientar um botão de atualização que não foi confirmado.
 - Fonte pública e produtos sem respostas reais, nomes particulares, caminhos pessoais, rascunhos, credenciais, capturas ou histórico privado.
 - Layout, logo, cores, tipografia e organização preservados.
 
@@ -74,6 +76,7 @@ Web, celular, nuvem e sistemas operacionais diferentes não estão validados por
 - 2026-10-06 — Contrato neutro 0.3.5: salvamento e entrega associados à origem, erros visíveis, paginação, limites agregados, comando portátil e exemplos fictícios. Evidências operacionais ficam em acervo interno separado.
 - 2026-10-07 — Preparação GitHub para outro computador: catálogo pronto, instalador Windows com verificação de requisitos, proteção de pasta/registro existente e conferência do vínculo MCP. Código do formulário e layout preservados.
 - 2026-10-12 — Preparada implementação experimental de ditado local em português nas respostas de texto e observações, por captura em memória e Whisper local. Contrato específico em ditado-nos-campos.md; nova versão instalada localmente, sem publicação. Reconhecimento e inserção pelo painel nativo ainda dependem de prova real, separada dos testes de código e protocolo.
+- 2026-10-12 — Corrigido vínculo de instalação para componentes versionados no perfil, fora do cache descartável; versões anteriores e conteúdo de uma mesma versão são preservados. Preparação atômica da pasta, marcadores e recusa de links ou conteúdo divergente. Lint e 54 verificações passaram; servidor real da cópia persistente iniciou em banco isolado. A instalação não comprova recarga de conexões antigas, e o instalador deixou de prometer que fechar somente a aba seria suficiente. Fonte local sem publicação; fala real no painel continua pendente no contrato específico.
 
 ## Notas de desenho
 

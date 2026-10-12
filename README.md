@@ -17,7 +17,7 @@ Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop 
 
 O pacote está construído e não exige npm ou compilação. O instalador confere os requisitos, conserva o catálogo na pasta local do perfil e registra o plugin e seu servidor. Não reinicia o aplicativo e não apaga rascunhos. Se faltar Node ou Codex, mostra a causa e encerra.
 
-Uma aba antiga da ferramenta precisa ser fechada e aberta novamente. Para conferir os requisitos sem instalar, execute `Instalar.cmd --verificar`.
+Instalar arquivos não confirma que uma conexão já aberta carregou a versão nova. Fechar somente a aba pode não atualizar o servidor. Para conferir os requisitos sem instalar, execute `Instalar.cmd --verificar`.
 
 Se houver um catálogo do mesmo plugin registrado em outra pasta, a instalação para de forma visível para preservar o registro existente. Esse caso requer o fluxo de atualização da instalação anterior.
 
@@ -37,29 +37,17 @@ O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere
 
 ## Instalar no Codex
 
-Depois de construir:
+Depois de construir, no Windows:
 
 ```powershell
-codex plugin marketplace add ./pacote
-codex plugin add perguntas-decisoes@perguntas-decisoes-local
+node scripts/instalar-desktop.mjs
 ```
 
-Os comandos registram o catálogo e instalam no seu perfil. Se `codex plugin` não existir, use a CLI compatível fornecida pelo aplicativo. O projeto não inclui nem altera o executável do Codex.
+O instalador usa a CLI compatível fornecida pelo aplicativo, registra o catálogo e instala no perfil. O projeto não inclui nem altera o executável do Codex.
 
-No Windows, este bloco usa diretamente a CLI do aplicativo e registra o servidor local para novas conexões:
+Na fonte em validação, os componentes ficam em `%LOCALAPPDATA%/PerguntasDecisoes/componentes/<versão>`. O vínculo MCP aponta para essa cópia, fora do cache descartável do catálogo. Atualizar conserva versões anteriores para conexões que ainda as utilizam. Não são respostas nem histórico de áudio. A correção ainda não integra o ZIP público 0.3.5.
 
-```powershell
-$motorPlugin = Get-ChildItem -LiteralPath "$env:LOCALAPPDATA\OpenAI\Codex\bin" -Filter codex.exe -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
-if (-not $motorPlugin) { throw 'A CLI do Codex desktop não foi encontrada.' }
-& $motorPlugin plugin marketplace add ./pacote
-if ($LASTEXITCODE -ne 0) { throw 'Não consegui registrar o catálogo.' }
-$instalacaoPlugin = (& $motorPlugin plugin add perguntas-decisoes@perguntas-decisoes-local --json) | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) { throw 'Não consegui instalar o plugin.' }
-$servidorPlugin = Join-Path $instalacaoPlugin.installedPath 'server/servidor.mjs'
-& $motorPlugin mcp add perguntas_decisoes_local -- node $servidorPlugin
-```
-
-O vínculo fica na configuração local do seu computador. Seu caminho não faz parte do pacote distribuído. O catálogo pronto usa os mesmos comandos de registro a partir da pasta extraída, sem etapa de construção.
+O vínculo fica na configuração local do computador; o caminho pessoal não faz parte do pacote distribuído. No catálogo pronto, `Instalar.cmd` executa esse mesmo instalador a partir da pasta extraída, sem etapa de construção. Uma versão existente com conteúdo diferente é recusada, preservando seus arquivos; alterações dos componentes precisam de nova versão.
 
 Selecione **Perguntas e decisões** no menu `@` da conversa. Para abrir manualmente: **Ferramentas → Mais ferramentas → Plugins e MCPs → Perguntas e decisões**. A localização do menu depende da versão do aplicativo.
 
@@ -105,6 +93,8 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 
 ## Ditado local nos campos
 
+Implementação em validação: o reconhecimento local controlado devolveu texto, mas a fala humana no formulário nativo ainda não recebeu aceite. O ZIP público 0.3.5 não contém esta evolução.
+
 No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o microfone ficar ativo e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O botão de cancelar ou a tecla Esc descarta o trecho. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
 
 Prepare o reconhecimento uma vez por computador, pela fonte:
@@ -116,6 +106,8 @@ npm run preparar:ditado
 No catálogo instalado, também pode ser executado o arquivo `server/preparar-ditado.mjs` com `node --use-system-ca`. O preparo baixa o motor CPU whisper.cpp v1.9.2 e o modelo Whisper base multilíngue, cerca de 150 MB, verificando os hashes. Não usa chave de API ou cobrança por minuto. Motor e modelo ficam em `%LOCALAPPDATA%/PerguntasDecisoes/voz` e conservam suas licenças MIT.
 
 O reconhecimento usa português e roda no computador. Áudio passa somente por memória e canais locais entre processos, sem WAV temporário ou envio à internet. Texto reconhecido passa a integrar o rascunho existente; falhas e conflitos preservam o campo e aparecem na interface. A navegação e a entrega aguardam o término do ditado. Os comandos intermediários são privados do painel.
+
+O ditado nativo do editor do Codex não foi encontrado como capacidade pública para plugins na [referência oficial](https://developers.openai.com/plugins/reference). Esta implementação usa reconhecimento próprio; não apresenta esse motor como o recurso nativo do aplicativo.
 
 Fontes do motor e modelo: [whisper.cpp](https://github.com/ggml-org/whisper.cpp/tree/v1.9.2), [Whisper](https://github.com/openai/whisper).
 

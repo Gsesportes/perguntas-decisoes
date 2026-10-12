@@ -1,0 +1,79 @@
+---
+titulo: 'Ditado nos campos de resposta e observação'
+tipo: 'funcionalidade'
+criado: '2026-10-12'
+estado: 'em-implementacao'
+contexto: []
+---
+
+## Intenção
+
+Implementar “a transcrição nos campos de resposta e observação, sem mudar o layout nem reiniciar o app, e teste de verdade no painel do plugin”. Esta etapa amplia o protótipo de captura já comprovado; as exclusões de transcrição daquele protótipo permanecem como histórico da etapa anterior.
+
+## Fronteiras e restrições
+
+- Windows e Codex desktop; preservar a identidade do plugin, o armazenamento de rascunhos e as entregas existentes.
+- Ditado em português, local, por Whisper base multilíngue e whisper.cpp v1.9.2 CPU. Download inicial verificado por SHA-256; nenhum envio de áudio, API paga ou reaproveitamento de credenciais do aplicativo.
+- Modelo e motor em diretório próprio do perfil, fora do cache do plugin. Não instalar dependência global.
+- Captura PCM mono de 16 bits e 16000 Hz em memória, limitada a sessenta segundos. Parar confirma o trecho; cancelar descarta. Um único ditado por conexão e mutex por sessão Windows.
+- Liberar microfone antes da inferência. Usar stdin binário para o motor, sem criar WAV, arquivo de transcrição ou histórico de áudio.
+- Acrescentar texto às respostas de tipo texto, observações individuais e observações gerais. Não converter fala em escolhas, datas, números ou notas por inferência.
+- Fixar formulário, pergunta, campo e valor original ao iniciar. Bloquear navegação e entrega durante o ditado; não aplicar retorno atrasado a outro campo ou a texto alterado.
+- Preservar o texto existente. Validar limites antes de aplicar; excesso deve ser erro visível, sem truncamento.
+- Acrescentar somente controles pequenos de microfone dentro dos campos existentes. Preservar posições, dimensões, paginação, cores e botões de entrega.
+- Comandos de ditado privados da interface; áudio e transcrição intermediária fora do contexto do agente. O texto só integra a conversa pelas entregas já existentes e solicitadas pelo usuário.
+- Não reiniciar o aplicativo, não criar chat, não encerrar processos de outros agentes e não recarregar globalmente MCPs. Usar instalação suportada do próprio pacote; não editar cache à mão.
+- Prova exige fala real no painel MCP nativo, texto reconhecido no campo certo, revisão e persistência do rascunho. Compilação, lint, áudio sintetizado e testes de unidade são verificações complementares.
+
+## Matriz de entradas, saídas e fronteiras
+
+| Situação | Resultado |
+|---|---|
+| Clique no microfone de resposta de texto | Iniciar sessão vinculada àquela resposta |
+| Clique no microfone de observação | Iniciar sessão vinculada àquela observação |
+| Parar | Fechar dispositivo, transcrever e acrescentar texto revisável |
+| Cancelar ou fechar a interface | Interromper processo próprio e descartar áudio e texto intermediário |
+| Silêncio ou reconhecimento vazio | Informar ausência de fala reconhecida; preservar o campo |
+| Modelo ou motor ausente | Erro visível com orientação de preparo; não iniciar captura |
+| Texto maior que o limite | Recusar inserção sem truncar ou apagar texto anterior |
+| Outra captura ativa | Recusar a segunda |
+| Troca de formulário ou versão durante a operação | Preservar campo e informar conflito |
+| Falha, prazo ou saída inesperada do motor | Encerrar somente o filho próprio; erro visível |
+| Versão anterior ainda carregada | Relatar estado real; não declarar navegador externo como painel nativo |
+
+## Mapa dos arquivos
+
+- `native/CapturaMicrofone.cs`: captura WinMM com áudio em memória, parada e cancelamento separados.
+- `src/ditado-desktop.mjs`: controlador de captura e reconhecimento, prazos e sessões privadas.
+- `src/ditado-interface.mjs`: microfones e proteção do destino.
+- `src/interface.mjs` e `src/aplicativo.mjs`: ligação ao rascunho e chamadas MCP.
+- `src/servidor-desktop.mjs`: operações privadas de ditado.
+- `web/painel.html`: controles posicionados dentro dos campos existentes.
+- `scripts/preparar-ditado.mjs`: download local com hashes e atribuições.
+- `scripts/empacotar-desktop.mjs`: componente nativo e versão do pacote.
+- `testes/ditado.test.mjs`: limites e proteção do destino sem áudio fictício como prova.
+- `docs/evidencias/ditado-20261012/`: checklist, relatório e capturas reais.
+
+## Tarefas e aceite
+
+- [x] Ler contratos, pesquisa, código e prova de captura anterior.
+- [x] Preparar e verificar motor e modelo locais.
+- [x] Implementar captura, parada, cancelamento e transcrição sem arquivo de áudio.
+- [x] Integrar respostas de texto e todas as observações mantendo a estrutura e os estilos base; conferência visual pendente.
+- [ ] Conferir limites, concorrência, retenção e erros.
+- [x] Construir e instalar somente o próprio plugin.
+- [ ] Testar fala real na resposta e observação pelo painel MCP nativo.
+- [ ] Verificar persistência, texto prévio e revisão manual.
+- [x] Executar lint e testes apropriados.
+- [x] Registrar evidências, arquivos e histórico parcial em Git local; conclusão depende da prova nativa.
+
+## Verificação
+
+Distinguir captura, reconhecimento, inserção no campo, salvamento e entrega. Conferir cada etapa; não enviar formulários reais nem publicar no GitHub nesta rodada.
+
+## Histórico de mudanças
+
+- 2026-10-12 — Escopo autorizado; iniciada implementação local de ditado preservando layout e aplicativo aberto.
+- 2026-10-12 — Implementados captura até sessenta segundos, parada, cancelamento, transcrição local em memória e microfones nos campos. Motor v1.9.2 e modelo base preparados com hashes; versão 0.3.6-ditado.2 construída e instalada. Lint, 51 verificações e protocolo em banco isolado aprovados. A conexão ativa continuou no diagnóstico anterior mesmo após seleção do plugin; fala real, inserção e validação visual da nova interface permanecem pendentes. Sem reinício do aplicativo, recarga global ou publicação. Evidências em docs/evidencias/ditado-20261012/RELATORIO.md.
+- 2026-10-12 — Conferência posterior à instalação da iteração 2 continuou retornando o diagnóstico anterior. Fonte registrada em branch local e auditada sem referências particulares; provas privadas preservadas separadamente. Próxima tentativa depende de nova mensagem comum nesta conversa, sem garantia antecipada de recarga; aceite de fala real permanece aberto.
+

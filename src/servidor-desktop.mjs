@@ -6,29 +6,42 @@ import { FERRAMENTAS, URI_INTERFACE, chamarFerramenta } from './servidor.mjs';
 import { ErroFormulario } from './formulario.mjs';
 import { abrirArmazenamentoDesktop } from './armazenamento-desktop.mjs';
 import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
+import { FERRAMENTA_DITADO, criarServicoDitado } from './ditado-desktop.mjs';
 
 const armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS_DIRETORIO_DADOS });
+const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono });
+const diagnostico = process.argv[1]?.endsWith('diagnostico-microfone.mjs');
+const uriDiagnostico = 'ui://perguntas-decisoes/diagnostico-microfone';
+const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO];
+if (diagnostico) ferramentas.push({ name: 'abrir_diagnostico_microfone', title: 'Teste de ditado nos campos', description: 'Abre formulário de teste de ditado. A captura só começa por clique no microfone. Preserve o chat atual.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, _meta: { ui: { resourceUri: uriDiagnostico } } });
 const html = readFileSync(new URL('../dist/web/painel.html', import.meta.url), 'utf8');
 const imagemIcone = readFileSync(new URL('../assets/icone-128.png', import.meta.url));
 const icones = [{ src: `data:image/png;base64,${imagemIcone.toString('base64')}`, mimeType: 'image/png', sizes: ['128x128'] }];
-const servidor = new Server({ name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.3.5', icons: icones }, { capabilities: { tools: {}, resources: {} } });
-servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: FERRAMENTAS }));
+const servidor = new Server({ name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.3.6-ditado.2', icons: icones }, { capabilities: { tools: {}, resources: {} } });
+servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: ferramentas }));
 servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));
 servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
-  if (params.uri !== URI_INTERFACE) throw new Error('Recurso de interface não encontrado.');
-  return { contents: [{ uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app', text: html, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] };
+  if (params.uri !== URI_INTERFACE && !(diagnostico && params.uri === uriDiagnostico)) throw new Error('Recurso de interface não encontrado.');
+  return { contents: [{ uri: params.uri, mimeType: 'text/html;profile=mcp-app', text: html, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] };
 });
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
-  try { return await chamarFerramenta(params.name, params.arguments ?? {}, armazenamento.dono, armazenamento.DB); }
+  try {
+    if (params.name === 'controlar_ditado') return { content: [], _meta: await ditado.controlar(params.arguments ?? {}) };
+    if (diagnostico && params.name === 'abrir_diagnostico_microfone') {
+      if (Object.keys(params.arguments ?? {}).length) throw new ErroFormulario('O teste não aceita parâmetros.');
+      return await chamarFerramenta('criar_formulario', { titulo: 'Teste de ditado — resposta e observações', tipo: 'texto', perguntas: ['Dite uma resposta curta pelo microfone deste campo.', 'Este segundo item permite conferir que o ditado permanece no campo escolhido.'] }, armazenamento.dono, armazenamento.DB);
+    }
+    return await chamarFerramenta(params.name, params.arguments ?? {}, armazenamento.dono, armazenamento.DB);
+  }
   catch (erro) {
     console.error('Operação local não confirmada:', erro.message);
-    return { isError: true, content: [{ type: 'text', text: erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento local. O progresso não foi confirmado.' }] };
+    return { isError: true, content: [{ type: 'text', text: params.name === 'controlar_ditado' || erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento local. O progresso não foi confirmado.' }] };
   }
 });
-servidor.onclose = () => armazenamento.fechar();
+servidor.onclose = () => { ditado.fechar(); armazenamento.fechar(); };
 servidor.onerror = erro => console.error('Falha no protocolo da ferramenta:', erro.message);
 await servidor.connect(new StdioServerTransport(process.stdin, process.stdout, { maxBufferSize: LIMITE_BUFFER_TRANSPORTE }));
-async function encerrar() { await servidor.close(); armazenamento.fechar(); }
+async function encerrar() { ditado.fechar(); await servidor.close(); armazenamento.fechar(); }
 process.on('SIGINT', encerrar);
 process.on('SIGTERM', encerrar);

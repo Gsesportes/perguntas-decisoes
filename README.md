@@ -103,6 +103,22 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 - Conflitos entre janelas conservam o texto local e oferecem duas escolhas explícitas: usar a versão salva ou guardar seu preenchimento sobre a versão atual. A confirmação perdida de uma preparação é conferida por sua chave antes de retomar.
 - A lista oferece cem pendentes por vez e **Carregar mais formulários**.
 
+## Ditado local nos campos
+
+No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o microfone ficar ativo e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O botão de cancelar ou a tecla Esc descarta o trecho. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
+
+Prepare o reconhecimento uma vez por computador, pela fonte:
+
+```powershell
+npm run preparar:ditado
+```
+
+No catálogo instalado, também pode ser executado o arquivo `server/preparar-ditado.mjs` com `node --use-system-ca`. O preparo baixa o motor CPU whisper.cpp v1.9.2 e o modelo Whisper base multilíngue, cerca de 150 MB, verificando os hashes. Não usa chave de API ou cobrança por minuto. Motor e modelo ficam em `%LOCALAPPDATA%/PerguntasDecisoes/voz` e conservam suas licenças MIT.
+
+O reconhecimento usa português e roda no computador. Áudio passa somente por memória e canais locais entre processos, sem WAV temporário ou envio à internet. Texto reconhecido passa a integrar o rascunho existente; falhas e conflitos preservam o campo e aparecem na interface. A navegação e a entrega aguardam o término do ditado. Os comandos intermediários são privados do painel.
+
+Fontes do motor e modelo: [whisper.cpp](https://github.com/ggml-org/whisper.cpp/tree/v1.9.2), [Whisper](https://github.com/openai/whisper).
+
 ## Armazenamento e limites
 
 Rascunhos ficam em `%LOCALAPPDATA%/PerguntasDecisoes/rascunhos.sqlite`, fora do pacote e associados ao perfil Windows. O registro é removido após confirmação. Não há histórico próprio de entregas nem armazenamento remoto.

@@ -55,6 +55,12 @@
 #perguntas-decisoes-app .pd-rotulo { display:block; margin:8px 0 5px; font-size:12px; color:var(--pd-secundario); }
 #perguntas-decisoes-app textarea,#perguntas-decisoes-app input[type="number"],#perguntas-decisoes-app input[type="date"],#perguntas-decisoes-app input[type="time"] { box-sizing:border-box; width:100%; font:inherit; padding:8px 10px; background:var(--pd-fundo); color:var(--pd-texto); border:1px solid var(--pd-linha); border-radius:7px; }
 #perguntas-decisoes-app textarea { display:block; resize:vertical; min-height:38px; }
+#perguntas-decisoes-app .pd-ditado-campo { position:relative; }
+#perguntas-decisoes-app .pd-ditado-campo textarea { padding-right:40px; }
+#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] textarea { padding-right:72px; }
+#perguntas-decisoes-app button.pd-microfone,#perguntas-decisoes-app button.pd-cancelar-ditado { position:absolute; right:5px; bottom:5px; width:28px; height:28px; min-height:28px; padding:4px; display:flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--pd-forte); border-radius:5px; }
+#perguntas-decisoes-app button.pd-cancelar-ditado { right:35px; font-size:21px; }
+#perguntas-decisoes-app .pd-ditado-campo[data-gravando="true"] button.pd-microfone { background:var(--pd-forte); color:var(--pd-inverso); }
 #perguntas-decisoes-app textarea::placeholder { color:var(--pd-secundario); opacity:1; }
 #perguntas-decisoes-app .pd-gerais { padding:18px 22px; border-top:1px solid var(--pd-linha); }
 #perguntas-decisoes-app .pd-gerais label { display:block; margin-bottom:6px; font-weight:500; }

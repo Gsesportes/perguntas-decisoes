@@ -1,4 +1,5 @@
 import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega } from './formulario.mjs';
+import { criarDitadoInterface } from './ditado-interface.mjs';
 
 function elemento(tag, atributos = {}, conteudo) {
   const item = document.createElement(tag);
@@ -22,6 +23,18 @@ export function montarInterface(raiz, adaptador) {
   let chavePreparacao = null;
   const concluidos = new Set();
   const recebidos = new Map();
+  const ditado = criarDitadoInterface({
+    raiz, adaptador, contexto: () => atual, bloquear,
+    antesDeIniciar: async () => { await filaSalvamento; if (erroSalvamento) throw erroSalvamento; },
+    validarTexto: (destino, texto) => {
+      const copia = structuredClone(atual.rascunho);
+      if (destino.campo === 'gerais') copia.gerais = texto;
+      else if (destino.campo === 'resposta') copia.respostas[destino.pergunta] = texto;
+      else copia.observacoes[destino.pergunta] = texto;
+      validarRascunho(atual.formulario, copia);
+    },
+    erro: mostrarErro, estado: texto => { obter('[data-estado]').textContent = texto; }
+  });
   obter('[data-origem]').textContent = adaptador.origem;
 
   function mostrarErro(mensagem) {
@@ -149,12 +162,14 @@ export function montarInterface(raiz, adaptador) {
       };
       controle.addEventListener('input', registrarResposta);
       caixa.append(rotulo, controle);
+      if (pergunta.tipo === 'texto') ditado.adicionar(controle, { campo: 'resposta', pergunta: pergunta.id }, `resposta da pergunta ${indice + 1}`);
     }
     const idObservacao = `pd-obs-${pergunta.id}`;
     const observacao = elemento('textarea', { id: idObservacao, rows: 1, placeholder: 'Acrescente uma observação, se quiser' });
     observacao.value = atual.rascunho.observacoes[pergunta.id] ?? '';
     observacao.addEventListener('input', () => alterou(pergunta, 'observacoes', observacao.value));
     caixa.append(elemento('label', { for: idObservacao, class: 'pd-rotulo' }, 'Observações · opcional'), observacao);
+    ditado.adicionar(observacao, { campo: 'observacao', pergunta: pergunta.id }, `observação da pergunta ${indice + 1}`);
     return caixa;
   }
   function desenharPagina() {
@@ -185,6 +200,7 @@ export function montarInterface(raiz, adaptador) {
     obter('[data-titulo]').scrollIntoView({ block: 'start', behavior: 'auto' });
   });
   obter('#pd-observacoes-gerais').addEventListener('input', evento => { if (!ocupado && !entregue && !entregaPreparada && !preparacaoPendente) { atual.rascunho.gerais = evento.target.value; salvar(); } });
+  ditado.adicionar(obter('#pd-observacoes-gerais'), { campo: 'gerais' }, 'observações gerais');
   raiz.querySelectorAll('[data-entrega]').forEach(botao => botao.addEventListener('click', async () => {
     if (ocupado || entregue || !paginaValida()) return;
     const origem = atual;

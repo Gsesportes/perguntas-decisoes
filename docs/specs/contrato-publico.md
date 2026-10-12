@@ -73,6 +73,7 @@ Web, celular, nuvem e sistemas operacionais diferentes não estão validados por
 
 - 2026-10-06 — Contrato neutro 0.3.5: salvamento e entrega associados à origem, erros visíveis, paginação, limites agregados, comando portátil e exemplos fictícios. Evidências operacionais ficam em acervo interno separado.
 - 2026-10-07 — Preparação GitHub para outro computador: catálogo pronto, instalador Windows com verificação de requisitos, proteção de pasta/registro existente e conferência do vínculo MCP. Código do formulário e layout preservados.
+- 2026-10-12 — Preparada implementação experimental de ditado local em português nas respostas de texto e observações, por captura em memória e Whisper local. Contrato específico em ditado-nos-campos.md; nova versão instalada localmente, sem publicação. Reconhecimento e inserção pelo painel nativo ainda dependem de prova real, separada dos testes de código e protocolo.
 
 ## Notas de desenho
 

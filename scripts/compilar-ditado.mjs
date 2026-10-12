@@ -1,0 +1,12 @@
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+const origem = new URL('../native/', import.meta.url);
+if (!process.env.WINDIR) throw new Error('A compilação do microfone requer Windows.');
+const executavel = fileURLToPath(new URL('CapturaMicrofone.exe', origem));
+const argumentos = ['/nologo', '/utf8output', '/target:exe', '/platform:anycpu', '/out:' + executavel, '/r:System.Web.Extensions.dll', fileURLToPath(new URL('CapturaMicrofone.cs', origem))];
+const resultado = spawnSync(join(process.env.WINDIR, 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe'), argumentos, { encoding: 'utf8', windowsHide: true, timeout: 30000 });
+if (resultado.error || resultado.status !== 0) throw new Error('Compilação do microfone não confirmada: ' + (resultado.error?.message ?? resultado.stdout + resultado.stderr));
+console.log(JSON.stringify({ compilado: true, sha256: createHash('sha256').update(await readFile(executavel)).digest('hex'), captura_executada: false }));

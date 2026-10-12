@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 
 export const ARQUIVOS_CATALOGO = [
   '.agents/plugins/marketplace.json',
-  ...['plugin.json', 'mcp.json', '.mcp.json', '.codex-plugin/plugin.json', 'server/servidor.mjs',
+  ...['plugin.json', 'mcp.json', '.mcp.json', '.codex-plugin/plugin.json', 'server/servidor.mjs', 'server/preparar-ditado.mjs', 'native/CapturaMicrofone.exe',
     'dist/web/painel.html', 'migracoes/0001_rascunhos.sql', 'skills/usar-painel-preservando-chat/SKILL.md',
     'assets/logo-verde.png', 'assets/icone-128.png', 'LICENSE', 'THIRD_PARTY_NOTICES.txt']
     .map(arquivo => 'plugins/perguntas-decisoes/' + arquivo)
@@ -25,7 +25,7 @@ export function validarCatalogo(pasta) {
   }
   const catalogo = lerJson(join(raiz, '.agents/plugins/marketplace.json'));
   const plugin = lerJson(join(raiz, 'plugins/perguntas-decisoes/plugin.json'));
-  if (catalogo.name !== 'perguntas-decisoes-local' || plugin.name !== 'perguntas-decisoes' || !/^\d+\.\d+\.\d+$/.test(plugin.version)) throw new Error('A identidade ou versão do pacote é inválida.');
+  if (catalogo.name !== 'perguntas-decisoes-local' || plugin.name !== 'perguntas-decisoes' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/.test(plugin.version)) throw new Error('A identidade ou versão do pacote é inválida.');
   if (catalogo.plugins?.length !== 1 || catalogo.plugins[0].source?.path !== './plugins/perguntas-decisoes') throw new Error('O catálogo não corresponde a este plugin.');
   for (const nome of ['mcp.json', '.mcp.json']) {
     const servidor = lerJson(join(raiz, 'plugins/perguntas-decisoes', nome)).mcpServers?.perguntas;

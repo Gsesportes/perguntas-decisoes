@@ -4,6 +4,7 @@ dist/
 pacote/
 *.zip
 *.log
+native/*.exe
 *.sqlite
 *.sqlite-*
 *.db

@@ -12,7 +12,7 @@ test('Instalador confere catálogo completo e recusa identidade ou comando inesp
   try {
     for (const arquivo of ARQUIVOS_CATALOGO) { const destino = join(pasta, arquivo); await mkdir(dirname(destino), { recursive: true }); await copyFile(join(raiz, arquivo), destino); }
     const verificado = validarCatalogo(pasta);
-    assert.equal(verificado.versao, '0.3.5');
+    assert.equal(verificado.versao, JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version);
     const arquivo = join(pasta, 'plugins/perguntas-decisoes/mcp.json');
     const mcp = JSON.parse(await readFile(arquivo, 'utf8'));
     mcp.mcpServers.perguntas.args[0] = '../outro-servidor.mjs';

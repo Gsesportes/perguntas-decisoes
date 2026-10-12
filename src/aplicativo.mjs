@@ -4,7 +4,7 @@ import { montarInterface } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.5' });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.2' });
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);
@@ -22,7 +22,8 @@ const adaptador = {
   concluir: (id, token) => chamar('confirmar_entrega', { id, token }),
   retomar: async (id, token) => (await chamar('retomar_edicao', { id, token }))._meta.versao,
   ler: id => chamar('ler_formulario', { id }),
-  listar: cursor => chamar('listar_pendentes', { cursor })
+  listar: cursor => chamar('listar_pendentes', { cursor }),
+  ditado: async entrada => (await chamar('controlar_ditado', entrada))._meta
 };
 const interfaceUsuario = montarInterface(document.getElementById('perguntas-decisoes-app'), adaptador);
 function aplicarTema() {

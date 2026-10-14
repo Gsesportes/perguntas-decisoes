@@ -55,6 +55,8 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 
 ## Histórico de mudanças
 
+- 2026-10-14 — Nova tentativa de abertura recebeu ainda recurso 0.4.6. Renovado somente o plugin próprio pela desinstalação oficial e reinstalação 0.5.0, sem reiniciar o Codex. Dez rascunhos anteriores conferidos por ID, versão e estado de entrega; habilitação específica da conexão própria reposta com preservação semântica das demais configurações. Criado pela versão 0.5.0 um formulário de uma pergunta e observações, sem respostas, no perfil real. Ferramentas retiradas do contexto durante a renovação; abertura ainda aguarda nova seleção do plugin. Criação pelo protocolo não foi apresentada como painel aberto.
+
 - 2026-10-14 — Implementada e instalada a fonte completa 0.5.0. Cópia na última página e na tela final, permissão do navegador e integração Windows privada com confirmação por releitura; nenhuma preparação, envio ou limpeza causada pela cópia. Adaptadas as melhorias do PR #1, revisão aed3c731f05fd00c073483394c69559b0fef8cff: lateral padrão, chat opcional, mesmo ID entre apresentações, aviso persistente, espaçamentos compactos e catálogo sincronizável/conferido. Mantidos versão única, URIs versionadas, formatos, ditado e concorrência atuais. Lint, 134 testes, comando distribuído e protocolo passaram. Cópia Windows real confirmada com Unicode e linhas, antes e depois da limpeza de dados fictícios; conteúdo anterior restaurado. Esta conversa ainda serve 0.4.6 e a automação de tela falha antes de executar; clique no painel 0.5.0 permanece pendente. Sem reinício do Codex, novo chat ou alteração remota do PR.
 
 - 2026-10-14 — Escopo definido a partir do pedido de cópia e da revisão atual do PR #1; implementação e provas pendentes.

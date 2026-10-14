@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, copyFile, readFile, writeFile, rm } from 'node:fs/promi
 import { join, dirname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { validarCatalogo, prepararComponentesDesktop, ARQUIVOS_CATALOGO } from '../scripts/instalar-desktop.mjs';
+import { validarCatalogo, prepararComponentesDesktop, escolherCatalogoDesktop, ARQUIVOS_CATALOGO } from '../scripts/instalar-desktop.mjs';
 
 test('Instalador confere catálogo completo e recusa identidade ou comando inesperados', async () => {
   const pasta = await mkdtemp(join(tmpdir(), 'catalogo instalador '));
@@ -18,10 +18,10 @@ test('Instalador confere catálogo completo e recusa identidade ou comando inesp
     mcp.mcpServers.perguntas.args[0] = '../outro-servidor.mjs';
     await writeFile(arquivo, JSON.stringify(mcp));
     assert.throws(() => validarCatalogo(pasta), /não corresponde ao servidor/);
-    mcp.mcpServers.perguntas.args[0] = 'server/servidor.mjs'; await writeFile(arquivo, JSON.stringify(mcp));
+    mcp.mcpServers.perguntas.args[0] = '${PLUGIN_ROOT}/server/servidor.mjs'; await writeFile(arquivo, JSON.stringify(mcp));
     mcp.mcpServers.perguntas.cwd = '.'; await writeFile(arquivo, JSON.stringify(mcp));
     assert.throws(() => validarCatalogo(pasta), /não corresponde ao servidor/);
-    mcp.mcpServers.perguntas.cwd = './'; await writeFile(arquivo, JSON.stringify(mcp));
+    mcp.mcpServers.perguntas.cwd = '${PLUGIN_DATA}'; await writeFile(arquivo, JSON.stringify(mcp));
     await writeFile(join(pasta, '.agents/plugins/marketplace.json'), JSON.stringify({ name: 'outro' }));
     assert.throws(() => validarCatalogo(pasta), /identidade/);
   } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + sep)); await rm(pasta, { recursive: true, force: true }); }
@@ -60,5 +60,25 @@ test('componentes recusam uma pasta existente sem identificação própria', asy
     const { versao } = validarCatalogo(origem);
     await mkdir(join(pasta, versao));
     assert.throws(() => prepararComponentesDesktop({ origem, diretorio: pasta }), /não pertence a este instalador/);
+  } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + sep)); await rm(pasta, { recursive: true, force: true }); }
+});
+
+test('instalação da fonte usa o pacote construído e recusa catálogo de outra versão', async () => {
+  const pasta = await mkdtemp(join(tmpdir(), 'fonte catalogo '));
+  const raiz = fileURLToPath(new URL('../pacote/', import.meta.url));
+  try {
+    for (const arquivo of ARQUIVOS_CATALOGO) {
+      for (const prefixo of ['', 'pacote']) {
+        const destino = join(pasta, prefixo, arquivo); await mkdir(dirname(destino), { recursive: true }); await copyFile(join(raiz, arquivo), destino);
+      }
+    }
+    const atual = validarCatalogo(raiz).versao;
+    const antigo = join(pasta, 'plugins/perguntas-decisoes/plugin.json');
+    const manifesto = JSON.parse(await readFile(antigo, 'utf8')); manifesto.version = '0.0.1'; await writeFile(antigo, JSON.stringify(manifesto));
+    await writeFile(join(pasta, 'package.json'), JSON.stringify({ name: 'perguntas-decisoes', version: atual }));
+    assert.equal(escolherCatalogoDesktop(pasta).raiz, resolve(pasta, 'pacote'));
+    assert.equal(escolherCatalogoDesktop(pasta).versao, atual);
+    await writeFile(join(pasta, 'package.json'), JSON.stringify({ name: 'perguntas-decisoes', version: '99.0.0' }));
+    assert.throws(() => escolherCatalogoDesktop(pasta), /não corresponde à versão/);
   } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + sep)); await rm(pasta, { recursive: true, force: true }); }
 });

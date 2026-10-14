@@ -4,7 +4,8 @@ import { montarInterface, coordenarCargaInicial } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.6-ditado.6' });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.4.2' });
+document.getElementById('perguntas-decisoes-app').setAttribute('data-versao', '0.4.2');
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);
@@ -23,7 +24,8 @@ const adaptador = {
   retomar: async (id, token) => (await chamar('retomar_edicao', { id, token }))._meta.versao,
   ler: id => chamar('ler_formulario', { id }),
   listar: cursor => chamar('listar_pendentes', cursor === undefined ? {} : { cursor }),
-  ditado: async entrada => (await chamar('controlar_ditado', entrada))._meta
+  ditado: async entrada => (await chamar('controlar_ditado', entrada))._meta,
+  lerImagem: async (id, pergunta, opcao) => (await chamar('ler_imagem', { id, pergunta, opcao }))._meta.imagem
 };
 const interfaceUsuario = montarInterface(document.getElementById('perguntas-decisoes-app'), adaptador);
 const cargaInicial = coordenarCargaInicial({ carregar: interfaceUsuario.carregar, listar: () => adaptador.listar(), mostrarErro: interfaceUsuario.mostrarErro });

@@ -29,9 +29,20 @@ export function validarCatalogo(pasta) {
   if (catalogo.plugins?.length !== 1 || catalogo.plugins[0].source?.path !== './plugins/perguntas-decisoes') throw new Error('O catálogo não corresponde a este plugin.');
   for (const nome of ['mcp.json', '.mcp.json']) {
     const servidor = lerJson(join(raiz, 'plugins/perguntas-decisoes', nome)).mcpServers?.perguntas;
-    if (servidor?.command !== 'node' || servidor.args?.length !== 1 || servidor.args[0] !== 'server/servidor.mjs' || servidor.cwd !== './') throw new Error('O comando do pacote não corresponde ao servidor local esperado.');
+    if (servidor?.command !== 'node' || servidor.args?.length !== 1 || servidor.args[0] !== '${PLUGIN_ROOT}/server/servidor.mjs' || servidor.cwd !== '${PLUGIN_DATA}') throw new Error('O comando do pacote não corresponde ao servidor local esperado.');
   }
   return { raiz, versao: plugin.version };
+}
+export function escolherCatalogoDesktop(raiz) {
+  const construido = join(raiz, 'pacote');
+  const origem = existsSync(join(construido, '.agents/plugins/marketplace.json')) ? construido : raiz;
+  const catalogo = validarCatalogo(origem);
+  const fonte = join(raiz, 'package.json');
+  if (existsSync(fonte)) {
+    const projeto = lerJson(fonte);
+    if (projeto.name === 'perguntas-decisoes' && projeto.version !== catalogo.versao) throw new Error('O catálogo não corresponde à versão da fonte. Construa o pacote antes de instalar.');
+  }
+  return catalogo;
 }
 export function prepararComponentesDesktop({ origem, diretorio }) {
   const catalogo = validarCatalogo(origem);
@@ -84,8 +95,7 @@ export function instalarDesktop({ raiz, verificar = false, ambiente = process.en
   if (process.platform !== 'win32') throw new Error('Este instalador é para Windows.');
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('É necessário Node.js 24 ou superior: https://nodejs.org/en/download');
   if (!ambiente.LOCALAPPDATA) throw new Error('A pasta local do perfil Windows não foi encontrada.');
-  const pastaOrigem = existsSync(join(raiz, '.agents/plugins/marketplace.json')) ? raiz : join(raiz, 'pacote');
-  const catalogo = validarCatalogo(pastaOrigem);
+  const catalogo = escolherCatalogoDesktop(raiz);
   const { motor, versao } = acharMotor(join(ambiente.LOCALAPPDATA, 'OpenAI', 'Codex', 'bin'));
   const executarJson = args => JSON.parse(execFileSync(motor, args, { encoding: 'utf8', windowsHide: true }));
   const existentes = executarJson(['plugin', 'marketplace', 'list', '--json']).marketplaces;

@@ -1,5 +1,7 @@
-import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega } from './formulario.mjs';
+import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega, perguntasVisiveis } from './formulario.mjs';
 import { criarDitadoInterface } from './ditado-interface.mjs';
+import { verificarResposta } from './formatos.mjs';
+import { montarControleFormato, montarBarra } from './controles-formatos.mjs';
 
 export function coordenarCargaInicial({ carregar, listar, mostrarErro }) {
   let recebeuResultado = false;
@@ -78,15 +80,18 @@ export function montarInterface(raiz, adaptador) {
   }
   function bloquear(valor) {
     ocupado = valor;
-    raiz.querySelectorAll('form input,form textarea,form button').forEach(campo => { campo.disabled = valor; });
-    if (!valor && (entregue || entregaPreparada || preparacaoPendente)) raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = true; });
+    raiz.querySelectorAll('form input,form textarea,form button').forEach(campo => { campo.disabled = valor || campo.dataset.indisponivel === 'true'; });
+    if (!valor && (entregue || entregaPreparada || preparacaoPendente)) {
+      raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = true; });
+      raiz.querySelectorAll('[data-editavel],[data-ditado]').forEach(campo => { campo.disabled = true; });
+    }
     atualizarNavegacao();
   }
   function bloquearDitado(valor, destino, preparando = false) {
     ditando = valor;
     if (valor) {
-      raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = ocupado || preparando || campo === destino; });
-      raiz.querySelectorAll('form button').forEach(botao => { botao.disabled = true; });
+      raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = ocupado || preparando || campo === destino || campo.dataset.condiciona === 'true' || campo.dataset.indisponivel === 'true'; });
+      raiz.querySelectorAll('form button').forEach(botao => { botao.disabled = preparando || botao.dataset.editavel !== 'true' || botao.dataset.condiciona === 'true' || botao.dataset.indisponivel === 'true'; });
       atualizarNavegacao();
     } else {
       bloquear(ocupado);
@@ -96,9 +101,10 @@ export function montarInterface(raiz, adaptador) {
   function atualizarNavegacao() {
     if (!atual) return;
     const pagina = atual.rascunho.pagina;
-    const paginas = Math.ceil(atual.formulario.perguntas.length / POR_PAGINA);
-    const total = atual.formulario.perguntas.length;
-    const respondidas = Object.keys(atual.rascunho.respostas).length;
+    const visiveis = perguntasVisiveis(atual.formulario, atual.rascunho.respostas);
+    const paginas = Math.max(1, Math.ceil(visiveis.length / POR_PAGINA));
+    const total = visiveis.length;
+    const respondidas = visiveis.filter(pergunta => { try { return verificarResposta(pergunta, atual.rascunho.respostas[pergunta.id]); } catch (erro) { mostrarErro(erro.message); return false; } }).length;
     obter('[data-progresso]').textContent = `${respondidas} de ${total} respondidas`;
     obter('[data-pagina]').textContent = `Página ${pagina + 1} de ${paginas}`;
     obter('[data-barra]').max = total;
@@ -155,32 +161,57 @@ export function montarInterface(raiz, adaptador) {
   }
   function alterou(pergunta, campo, valor) {
     if (ocupado || entregue || entregaPreparada || preparacaoPendente) return;
+    if (ditando && campo === 'respostas' && atual.formulario.perguntas.some(item => item.se?.pergunta === pergunta.id)) return;
+    const anteriores = perguntasVisiveis(atual.formulario, atual.rascunho.respostas).map(item => item.id).join(',');
     if (campo === 'observacoes') atual.rascunho.observacoes[pergunta.id] = valor;
     else if (valor === undefined || valor === '' || (Array.isArray(valor) && !valor.length)) delete atual.rascunho.respostas[pergunta.id];
     else atual.rascunho.respostas[pergunta.id] = valor;
     mostrarErro('');
-    atualizarNavegacao();
+    const seguintes = perguntasVisiveis(atual.formulario, atual.rascunho.respostas).map(item => item.id).join(',');
+    if (anteriores !== seguintes) desenharPagina(true); else atualizarNavegacao();
     salvar();
   }
   function desenharPergunta(pergunta, indice) {
     const caixa = elemento('fieldset', { 'data-id': pergunta.id });
+    if (pergunta.grupo) caixa.className = 'pd-linha-tabela';
     const legenda = elemento('legend');
     legenda.append(elemento('span', {}, String(indice + 1)), document.createTextNode(` ${pergunta.texto}`));
     caixa.append(legenda);
     const resposta = atual.rascunho.respostas[pergunta.id];
-    if (['sim_nao', 'unica', 'multipla', 'nota', 'escala'].includes(pergunta.tipo)) {
+    const condiciona = atual.formulario.perguntas.some(item => item.se?.pergunta === pergunta.id);
+    const podeEditar = () => !ocupado && !entregue && !entregaPreparada && !preparacaoPendente && (!ditando || !condiciona);
+    const composto = montarControleFormato({ pergunta, resposta, alterar: valor => alterou(pergunta, 'respostas', valor), podeEditar, lerImagem: adaptador.lerImagem ? (id, opcao) => adaptador.lerImagem(atual.id, id, opcao) : null });
+    if (composto) caixa.append(composto);
+    else if (pergunta.visual === 'barra') caixa.append(montarBarra(pergunta, resposta, valor => alterou(pergunta, 'respostas', valor), podeEditar));
+    else if (['sim_nao', 'unica', 'multipla', 'nota', 'escala'].includes(pergunta.tipo)) {
       const numerica = ['nota', 'escala'].includes(pergunta.tipo);
       const opcoes = numerica ? Array.from({ length: Math.floor((pergunta.max - pergunta.min) / pergunta.passo + 0.000001) + 1 }, (_, posicao) => Number((pergunta.min + posicao * pergunta.passo).toFixed(6))) : pergunta.opcoes;
       const conjunto = elemento('div', { class: 'pd-opcoes' });
+      const estrelas = [];
+      const rostos = ['😞', '🙁', '😐', '🙂', '😄'];
       for (const opcao of opcoes) {
         const rotulo = elemento('label', { class: 'cursor-interaction' });
         const controle = elemento('input', { type: pergunta.tipo === 'multipla' ? 'checkbox' : 'radio', name: pergunta.id, value: opcao });
         controle.checked = pergunta.tipo === 'multipla' ? resposta?.includes(opcao) ?? false : resposta === opcao;
         controle.addEventListener('change', () => {
+          if (!podeEditar()) return;
           const selecionadas = [...conjunto.querySelectorAll('input:checked')].map(campo => numerica ? Number(campo.value) : campo.value);
           alterou(pergunta, 'respostas', pergunta.tipo === 'multipla' ? selecionadas : selecionadas[0]);
+          if (pergunta.visual === 'estrelas') for (const estrela of estrelas) estrela.textContent = estrela.valor <= selecionadas[0] ? '★' : '☆';
         });
-        rotulo.append(controle, document.createTextNode(String(opcao)));
+        rotulo.append(controle);
+        if (pergunta.visual === 'estrelas') {
+          rotulo.className += ' pd-estrela';
+          controle.setAttribute('aria-label', `${opcao} de ${pergunta.max} estrelas`);
+          if (opcao === 0) rotulo.append(document.createTextNode('0'));
+          else {
+            const estrela = elemento('span', { 'aria-hidden': 'true' }, opcao <= resposta ? '★' : '☆'); estrela.valor = opcao;
+            estrelas.push(estrela); rotulo.append(estrela);
+          }
+        } else if (pergunta.visual === 'emojis') {
+          rotulo.className += ' pd-emoji'; controle.setAttribute('aria-label', `Nota ${opcao} de 5`);
+          rotulo.append(elemento('span', { 'aria-hidden': 'true' }, rostos[opcao - 1]), document.createTextNode(String(opcao)));
+        } else rotulo.append(document.createTextNode(String(opcao)));
         conjunto.append(rotulo);
       }
       caixa.append(conjunto);
@@ -200,6 +231,7 @@ export function montarInterface(raiz, adaptador) {
       caixa.append(rotulo, controle);
       if (pergunta.tipo === 'texto') ditado.adicionar(controle, { campo: 'resposta', pergunta: pergunta.id }, `resposta da pergunta ${indice + 1}`);
     }
+    if (condiciona) caixa.querySelectorAll('input,textarea,button[data-editavel]').forEach(controle => controle.setAttribute('data-condiciona', 'true'));
     const idObservacao = `pd-obs-${pergunta.id}`;
     const observacao = elemento('textarea', { id: idObservacao, rows: 1, placeholder: 'Acrescente uma observação, se quiser' });
     observacao.value = atual.rascunho.observacoes[pergunta.id] ?? '';
@@ -208,17 +240,31 @@ export function montarInterface(raiz, adaptador) {
     ditado.adicionar(observacao, { campo: 'observacao', pergunta: pergunta.id }, `observação da pergunta ${indice + 1}`);
     return caixa;
   }
-  function desenharPagina() {
+  function desenharPagina(preservar = false) {
+    const visiveis = perguntasVisiveis(atual.formulario, atual.rascunho.respostas);
+    atual.rascunho.pagina = Math.min(atual.rascunho.pagina, Math.max(0, Math.ceil(visiveis.length / POR_PAGINA) - 1));
     const inicio = atual.rascunho.pagina * POR_PAGINA;
-    obter('[data-perguntas]').replaceChildren(...atual.formulario.perguntas.slice(inicio, inicio + POR_PAGINA).map((pergunta, indice) => desenharPergunta(pergunta, inicio + indice)));
+    const container = obter('[data-perguntas]');
+    const existentes = preservar ? new Map([...container.children].filter(item => item.dataset?.id).map(item => [item.dataset.id, item])) : new Map();
+    const elementos = []; let grupo = null;
+    for (const pergunta of visiveis.slice(inicio, inicio + POR_PAGINA)) {
+      if (pergunta.grupo && pergunta.grupo.id !== grupo) elementos.push(elemento('p', { class: 'pd-tabela-titulo' }, pergunta.grupo.texto));
+      grupo = pergunta.grupo?.id ?? null;
+      elementos.push(existentes.get(pergunta.id) ?? desenharPergunta(pergunta, atual.formulario.perguntas.indexOf(pergunta)));
+    }
+    const foco = preservar ? document.activeElement : null;
+    container.replaceChildren(...elementos);
+    if (foco?.isConnected) foco.focus({ preventScroll: true });
     obter('#pd-observacoes-gerais').value = atual.rascunho.gerais;
+    const avisoCondicoes = obter('[data-condicoes]');
+    if (avisoCondicoes) avisoCondicoes.hidden = !atual.formulario.perguntas.some(pergunta => pergunta.se);
     atualizarNavegacao();
   }
   function paginaValida() {
     try {
       const { pendentes } = validarRascunho(atual.formulario, atual.rascunho);
       const inicio = atual.rascunho.pagina * POR_PAGINA;
-      const faltantes = atual.formulario.perguntas.slice(inicio, inicio + POR_PAGINA).filter(pergunta => pendentes.includes(pergunta.id));
+      const faltantes = perguntasVisiveis(atual.formulario, atual.rascunho.respostas).slice(inicio, inicio + POR_PAGINA).filter(pergunta => pendentes.includes(pergunta.id));
       if (faltantes.length) { mostrarErro(`Faltam ${faltantes.length} respostas nesta página. Primeiro item: ${faltantes[0].texto}`); return false; }
       return true;
     } catch (erro) { mostrarErro(erro.message); return false; }

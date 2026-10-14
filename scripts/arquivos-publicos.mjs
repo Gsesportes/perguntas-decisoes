@@ -14,7 +14,9 @@ export const ARQUIVOS_PUBLICOS = [
   'scripts/empacotar-desktop.mjs', 'scripts/preparar-publicacao.mjs', 'scripts/servidor-local.mjs', 'scripts/verificar-desktop.mjs',
   'testes/apoio-dom.mjs', 'testes/armazenamento-desktop.test.mjs', 'testes/entregas.test.mjs',
   'testes/formulario.test.mjs', 'testes/interface.test.mjs', 'testes/mcp.test.mjs',
-  'testes/limites-desktop.test.mjs', 'testes/publicacao.test.mjs', 'testes/atomicidade.test.mjs'
+  'testes/limites-desktop.test.mjs', 'testes/publicacao.test.mjs', 'testes/atomicidade.test.mjs',
+  'src/erros.mjs', 'src/formatos.mjs', 'src/controles-formatos.mjs', 'src/imagens-desktop.mjs',
+  'docs/specs/formatos-avancados.md', 'testes/formatos.test.mjs', 'testes/imagens.test.mjs'
 ];
 
 export const ARQUIVOS_GERADOS = [

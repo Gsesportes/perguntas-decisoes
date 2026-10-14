@@ -10,9 +10,9 @@ import { configuracaoMcp } from './configuracao-mcp.mjs';
 const raiz = new URL('../', import.meta.url);
 const raizPacote = process.env.PERGUNTAS_PACOTE_INSTALADO ?? fileURLToPath(new URL('pacote/plugins/perguntas-decisoes/', raiz));
 const manifesto = JSON.parse(await readFile(join(raizPacote, 'plugin.json'), 'utf8'));
-const configuracao = await configuracaoMcp(raizPacote);
 const caminhoDados = fileURLToPath(new URL(`.local/verificacao/${crypto.randomUUID()}/`, raiz));
 await mkdir(caminhoDados, { recursive: true });
+const configuracao = await configuracaoMcp(raizPacote, { diretorioDados: caminhoDados });
 async function conectar() {
   const transporte = new StdioClientTransport({ ...configuracao, env: { ...process.env, PERGUNTAS_DIRETORIO_DADOS: caminhoDados }, stderr: 'pipe' });
   let diagnostico = '';

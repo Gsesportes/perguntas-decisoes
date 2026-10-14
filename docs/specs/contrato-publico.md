@@ -15,7 +15,8 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 
 - Windows, Node.js 24 ou superior, Codex desktop com MCP Apps e OpenAI Extensions.
 - Seis perguntas por página, Anterior e Próximo; avanço condicionado ao preenchimento.
-- Tipos: sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora.
+- Tipos legados: sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora. Fonte 0.4.0 acrescenta tabela, ordenação, imagens, pontos, intervalo e lista; estrelas, emojis, barra e condições são definidos integralmente em formatos-avancados.md.
+- Rascunhos legados conservam seu escopo; recursos novos usam escopo interno separado no mesmo banco. O servidor novo consulta ambos. Conexões antigas não devem interpretar os formatos novos; nenhuma migração destrutiva ou perda de respostas é permitida.
 - Alternativas visíveis em um clique e observações individuais e gerais opcionais.
 - Três entregas somente na última página, conforme capacidades: mensagem, anotação no contexto do compositor ou recurso incorporado TXT.
 - Não selecionar outra conversa para criar, abrir ou verificar um formulário.
@@ -28,7 +29,7 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Limites agregados: definição 400.000 bytes; rascunho 1.000.000; entrada 2.000.000 com margem de envelope. Limites individuais do README subordinados aos totais.
 - Reserva de transporte 8.000.000 bytes para recusa controlada; não truncar texto.
 - Pacote resolve Node no destino e diagnóstico inicia o comando do manifesto.
-- O diretório de trabalho do MCP portátil usa o caminho contido `./`; a forma `.` é recusada pelo carregador Agent Plugins do Codex. O aceite da conexão exige que o próprio Codex reconheça o servidor declarado, além de conseguir iniciar o comando diretamente.
+- O MCP portátil resolve o servidor por `${PLUGIN_ROOT}/server/servidor.mjs` e usa `${PLUGIN_DATA}` como diretório de trabalho persistente. A forma `.` é recusada pelo carregador Agent Plugins do Codex. O aceite exige que o próprio Codex reconheça e inicie o servidor; as variáveis são resolvidas pelo anfitrião.
 - Na abertura manual sem resultado inicial utilizável, consultar os pendentes pela operação privada após conectar. Um resultado de formulário recebido durante a consulta prevalece sobre a lista tardia. Falha ou ausência de conteúdo devolvido deve produzir erro visível, sem permanecer em uma tela vazia.
 - Instalação distribuída por GitHub com catálogo pronto e Instalar.cmd. Requer Windows, Node 24 e Codex desktop; o instalador verifica os requisitos antes de copiar arquivos, preserva registros existentes e não reinicia o aplicativo.
 - O servidor MCP é fornecido pelo próprio plugin, sem registrar uma segunda conexão global para a mesma ferramenta. Componentes nativos ficam versionados em pasta própria do perfil, fora do cache descartável de plugins. Atualizações conservam versões anteriores; não substituir arquivos de uma mesma versão por conteúdo diferente. Conferir marcadores de propriedade e recusar links simbólicos. Vínculos legados existentes exigem conferência de propriedade antes de remoção; não remover conexões de terceiros.
@@ -74,6 +75,8 @@ Exigir lint, regressões pertinentes, construção, conferência do comando dist
 Web, celular, nuvem e sistemas operacionais diferentes não estão validados por este contrato.
 
 ## Histórico de mudanças
+
+- 2026-10-14 — Fonte local 0.4.2 acrescenta tabela, ordenação, imagens locais, pontos, intervalo, lista, apresentações de notas e condições. Observações e tipos legados conservados; dados avançados isolados de servidores antigos no mesmo banco. Servidor usa PLUGIN_ROOT e PLUGIN_DATA; capturador e assets internos usam componentes persistentes. Lint, 81 testes e protocolo real em banco isolado passaram; carregador oficial iniciou 0.4.2. Após nova mensagem, recurso ativo da conversa conferido em 0.4.2 e exibição do formulário confirmada pela pessoa usuária. Automação visual indisponível: cliques e entrega nativa dos novos formatos não confirmados. Sem publicação remota.
 
 - 2026-10-12 — Fonte local 0.3.6-ditado.6 melhora os estados do microfone, permite editar outros campos durante o reconhecimento e ajusta paralelismo mantendo modelo e qualidade configurada. Instalador deixa de criar conexão global duplicada; vínculos legados não foram removidos automaticamente. Lint e 61 verificações passaram, sem publicação. Teste real anterior confirmou resposta, observações individuais e gerais e envio ao chat; alterações da iteração 6 ainda não foram verificadas no painel porque a conexão ativa permanece na iteração 5. Detalhes no contrato de ditado e evidência privada.
 

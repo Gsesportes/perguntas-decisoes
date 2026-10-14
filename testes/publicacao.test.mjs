@@ -39,3 +39,16 @@ test('Diagnóstico usa comando, argumentos e diretório do manifesto', async () 
     await rm(pasta, { recursive: true, force: true });
   }
 });
+
+test('diagnóstico expande variáveis oficiais e protege o diretório de dados', async () => {
+  const pasta = await mkdtemp(join(tmpdir(), 'variaveis-plugin-'));
+  const dados = join(pasta, 'dados');
+  try {
+    await writeFile(join(pasta, 'mcp.json'), JSON.stringify({ mcpServers: { perguntas: { command: 'node', args: ['${PLUGIN_ROOT}/server/servidor.mjs'], cwd: '${PLUGIN_DATA}' } } }));
+    await assert.rejects(configuracaoMcp(pasta), /diretório de dados/);
+    const c = await configuracaoMcp(pasta, { diretorioDados: dados });
+    assert.equal(c.cwd, resolve(dados)); assert.equal(c.args[0], resolve(pasta) + '/server/servidor.mjs');
+    await writeFile(join(pasta, 'mcp.json'), JSON.stringify({ mcpServers: { perguntas: { command: 'node', args: [], cwd: '${PLUGIN_DATA}/../fora' } } }));
+    await assert.rejects(configuracaoMcp(pasta, { diretorioDados: dados }), /dentro do pacote/);
+  } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + (process.platform === 'win32' ? '\\' : '/'))); await rm(pasta, { recursive: true, force: true }); }
+});

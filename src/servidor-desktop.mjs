@@ -8,12 +8,14 @@ import { ErroFormulario } from './formulario.mjs';
 import { abrirArmazenamentoDesktop } from './armazenamento-desktop.mjs';
 import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
 import { FERRAMENTA_DITADO, criarServicoDitado } from './ditado-desktop.mjs';
+import { FERRAMENTA_IMAGEM, lerImagemFormulario } from './imagens-desktop.mjs';
 
 const armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS_DIRETORIO_DADOS });
-const versaoPlugin = '0.3.6-ditado.6';
-const capturador = join(process.env.LOCALAPPDATA, 'PerguntasDecisoes', 'componentes', versaoPlugin, 'native/CapturaMicrofone.exe');
+const versaoPlugin = '0.4.2';
+const componentes = join(process.env.LOCALAPPDATA, 'PerguntasDecisoes', 'componentes', versaoPlugin);
+const capturador = join(componentes, 'native/CapturaMicrofone.exe');
 const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono, executavel: capturador });
-const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO];
+const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO, FERRAMENTA_IMAGEM];
 const html = readFileSync(new URL('../dist/web/painel.html', import.meta.url), 'utf8');
 const imagemIcone = readFileSync(new URL('../assets/icone-128.png', import.meta.url));
 const icones = [{ src: `data:image/png;base64,${imagemIcone.toString('base64')}`, mimeType: 'image/png', sizes: ['128x128'] }];
@@ -28,6 +30,7 @@ servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   try {
     if (params.name === 'controlar_ditado') return { content: [], _meta: await ditado.controlar(params.arguments ?? {}) };
+    if (params.name === 'ler_imagem') return await lerImagemFormulario({ banco: armazenamento.DB, dono: armazenamento.dono, entrada: params.arguments ?? {}, diretorioAssets: join(componentes, 'assets') });
     return await chamarFerramenta(params.name, params.arguments ?? {}, armazenamento.dono, armazenamento.DB);
   }
   catch (erro) {

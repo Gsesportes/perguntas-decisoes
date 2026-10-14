@@ -18,7 +18,10 @@ async function conectar() {
   let diagnostico = '';
   transporte.stderr?.on('data', parte => { diagnostico += parte.toString(); });
   const cliente = new Client({ name: 'verificacao-desktop', version: '1.0.0' });
-  try { await cliente.connect(transporte); }
+  try {
+    await cliente.connect(transporte);
+    assert.equal(cliente.getServerVersion()?.version, manifesto.version, 'A versão do servidor não corresponde ao manifesto do catálogo.');
+  }
   catch (erro) { await transporte.close(); throw new Error(`${erro.message}\n${diagnostico}`); }
   return cliente;
 }

@@ -12,7 +12,7 @@ export const ARQUIVOS_PUBLICOS = [
   'scripts/banco-local.mjs', 'scripts/configuracao-mcp.mjs', 'scripts/construir.mjs',
   'scripts/empacotar-desktop.mjs', 'scripts/preparar-publicacao.mjs', 'scripts/servidor-local.mjs', 'scripts/verificar-desktop.mjs',
   'testes/apoio-dom.mjs', 'testes/armazenamento-desktop.test.mjs', 'testes/entregas.test.mjs',
-  'testes/formulario.test.mjs', 'testes/interface.test.mjs', 'testes/exibicao.test.mjs', 'testes/mcp.test.mjs',
+  'testes/formulario.test.mjs', 'testes/interface.test.mjs', 'testes/exibicao.test.mjs', 'testes/aplicativo.test.mjs', 'testes/mcp.test.mjs',
   'testes/limites-desktop.test.mjs', 'testes/publicacao.test.mjs', 'testes/atomicidade.test.mjs'
 ];
 

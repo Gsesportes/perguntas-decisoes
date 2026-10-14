@@ -34,10 +34,12 @@ Abra um terminal na pasta do projeto:
 ```powershell
 node --version
 npm ci
+npm run sincronizar:catalogo
 npm run verificar
-npm run package:desktop
 npm run verificar:desktop
 ```
+
+Depois de alterar a fonte, `npm run sincronizar:catalogo` reconstrói o pacote e atualiza os arquivos do catálogo pronto usado por `Instalar.cmd`. A verificação compara esse catálogo com o pacote reconstruído e recusa diferenças; ela não sincroniza o catálogo automaticamente. Assim, arquivos antigos não passam despercebidos. A sincronização não instala nem registra o plugin no computador.
 
 O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, quatro ferramentas visíveis, as duas apresentações e retomada do mesmo formulário. Isso não comprova abertura ou entrega na interface nativa.
 
@@ -105,6 +107,7 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 - **Inserir como anotação:** adiciona texto ao contexto do campo de mensagem, para acompanhar o que a pessoa escrever.
 - **Anexar arquivo TXT:** adiciona recurso incorporado `text/plain`, com nome `respostas.txt`, ao contexto do campo de mensagem. A aparência depende do aplicativo; não equivale necessariamente a upload convencional.
 - Modalidades não anunciadas ficam indisponíveis. Falhas são visíveis; entrega ambígua exige conferir a conversa antes de reenviar ou retomar.
+- Se a apresentação solicitada não for confirmada, um aviso permanece visível durante o preenchimento, a navegação e a lista de pendentes. Ele desaparece quando o aplicativo confirma a apresentação solicitada.
 - Trocas durante salvamento ou entrega aguardam a operação original. Não há seleção automática de outra conversa principal.
 - Conflitos entre janelas conservam o texto local e oferecem duas escolhas explícitas: usar a versão salva ou guardar seu preenchimento sobre a versão atual. A confirmação perdida de uma preparação é conferida por sua chave antes de retomar.
 - A lista oferece cem pendentes por vez e **Carregar mais formulários**.

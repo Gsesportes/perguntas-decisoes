@@ -8,6 +8,7 @@
     "test": "node --test testes/*.test.mjs",
     "build": "node scripts/construir.mjs",
     "package:desktop": "node scripts/empacotar-desktop.mjs",
+    "sincronizar:catalogo": "npm run build && node scripts/empacotar-desktop.mjs --sincronizar-catalogo",
     "verificar": "npm run lint && npm test",
     "dev": "node scripts/servidor-local.mjs",
     "verificar:desktop": "node scripts/verificar-desktop.mjs",

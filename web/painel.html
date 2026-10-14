@@ -6,6 +6,7 @@
       <div class="pd-andamento"><span data-progresso aria-live="polite"></span><span data-pagina></span></div>
       <progress data-barra value="0" max="1" aria-label="Respostas concluídas"></progress>
     </header>
+    <p data-aviso-apresentacao role="alert" hidden></p>
     <div data-pendentes hidden></div>
     <form data-formulario novalidate>
       <div data-perguntas></div>
@@ -70,6 +71,7 @@ html[data-modo-exibicao="inline"] body { padding:0; }
 #perguntas-decisoes-app .pd-entregas { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 #perguntas-decisoes-app .pd-conexao { font-size:12px; color:var(--pd-secundario); margin:8px 0 0; }
 #perguntas-decisoes-app [data-erro] { color:var(--pd-erro); margin:0 0 8px; }
+#perguntas-decisoes-app [data-aviso-apresentacao] { color:var(--pd-erro); font-size:12px; margin:0; padding:0 12px 10px; }
 #perguntas-decisoes-app .pd-sucesso { margin:0; padding:10px 12px; }
 #perguntas-decisoes-app [data-pendentes] { padding:0 12px 12px; display:grid; gap:6px; }
 #perguntas-decisoes-app [hidden] { display:none !important; }

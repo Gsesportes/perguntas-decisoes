@@ -1,12 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, copyFile, writeFile, rm } from 'node:fs/promises';
-import { join, dirname, resolve } from 'node:path';
+import { mkdtemp, mkdir, copyFile, writeFile, readFile, rm } from 'node:fs/promises';
+import { join, dirname, resolve, relative, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { ARQUIVOS_PUBLICOS } from '../scripts/arquivos-publicos.mjs';
+import { ARQUIVOS_PUBLICOS, ARQUIVOS_GERADOS } from '../scripts/arquivos-publicos.mjs';
 import { auditarPublicacao } from '../scripts/auditar-publicacao.mjs';
 import { configuracaoMcp } from '../scripts/configuracao-mcp.mjs';
+
+test('Publicação inclui as dependências locais dos módulos distribuídos', async () => {
+  const raiz = fileURLToPath(new URL('../', import.meta.url));
+  const permitidos = new Set([...ARQUIVOS_PUBLICOS, ...ARQUIVOS_GERADOS]);
+  for (const caminho of ARQUIVOS_PUBLICOS.filter(item => item.endsWith('.mjs'))) {
+    const arquivo = join(raiz, caminho);
+    const fonte = await readFile(arquivo, 'utf8');
+    const imports = /^\s*(?:import\s+[^\r\n;]*?\s+from\s+|export\s+[^\r\n;]*?\s+from\s+|import\s*)['"](\.{1,2}\/[^'"]+)['"]/gm;
+    for (const correspondencia of fonte.matchAll(imports)) {
+      const dependencia = relative(raiz, resolve(dirname(arquivo), correspondencia[1])).split(sep).join('/');
+      assert.ok(permitidos.has(dependencia), `Dependência ausente da publicação: ${caminho} → ${dependencia}`);
+    }
+  }
+});
 
 test('Cópia por inclusão é neutra e recusa registros privados ou segredos acrescentados', async () => {
   const pasta = await mkdtemp(join(tmpdir(), 'perguntas-publicacao-'));

@@ -23,7 +23,7 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Troca solicitada aguarda salvamentos e operações. Erro de salvamento preserva texto na tela e bloqueia troca.
 - Versões protegem concorrência; entregas ambíguas não são reenviadas automaticamente.
 - A resposta de cada mutação contém sua própria versão e preparação, sem adotar uma gravação posterior. Conflitos oferecem escolhas explícitas; preparação ambígua exige conferir a mesma chave de operação. Leituras antigas não reabrem registros já concluídos.
-- Duas ferramentas visíveis; operações internas e paginação com visibilidade do aplicativo.
+- Quatro ferramentas visíveis: duas para a apresentação padrão lateral e duas para o uso opcional no chat; operações internas e paginação com visibilidade do aplicativo.
 - Pendentes em páginas de cem, por data e identificador, com acesso aos restantes.
 - Limites agregados: definição 400.000 bytes; rascunho 1.000.000; entrada 2.000.000 com margem de envelope. Limites individuais do README subordinados aos totais.
 - Reserva de transporte 8.000.000 bytes para recusa controlada; não truncar texto.
@@ -31,6 +31,7 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Instalação distribuída por GitHub com catálogo pronto e Instalar.cmd. Requer Windows, Node 24 e Codex desktop; o instalador verifica os requisitos antes de copiar arquivos, preserva registros existentes e não reinicia o aplicativo.
 - Fonte pública e produtos sem respostas reais, nomes particulares, caminhos pessoais, rascunhos, credenciais, capturas ou histórico privado.
 - Layout, logo, cores, tipografia e organização preservados.
+- Protótipo local 0.3.8: barra lateral direita como apresentação principal e padrão, com modo inline opcional somente quando solicitado. As apresentações usam recursos distintos e compartilham o mesmo formulário, respostas e observações. O visual compacto da versão 0.3.7 é preservado. Conferir o modo devolvido pelo anfitrião; suporte ausente ou recusa não comprova a apresentação solicitada.
 
 ## Matriz de entradas, saídas e fronteiras
 

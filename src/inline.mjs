@@ -2,10 +2,10 @@ import { montarInterface } from './interface.mjs';
 import { FORMULARIO_EXEMPLO, RASCUNHO_EXEMPLO } from './exemplo.mjs';
 import { montarEntrega, migrarPaginacao } from './formulario.mjs';
 
-const id = 'exemplo-interface-v2';
+const id = 'exemplo-no-chat-compacto-0.3.7';
 const estadosProprios = new Set();
 const adaptador = {
-  origem: 'Demonstração com perguntas fictícias · comece sem respostas selecionadas',
+  origem: 'Exemplo interativo',
   conexao: 'Enviar ao chat usa a conversa quando o aplicativo oferece esse recurso. Anotação e arquivo exigem o plugin conectado; ficam indisponíveis aqui.',
   capacidades: () => ({ chat: typeof window.openai?.sendFollowUpMessage === 'function', anotacao: false, arquivo: false }),
   get salvamento() { return window.openai?.setWidgetState ? 'Progresso guardado' : 'Progresso só nesta sessão'; },

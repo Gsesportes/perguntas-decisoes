@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE } from '../src/servidor.mjs';
+import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE, URI_INTERFACE_CHAT } from '../src/servidor.mjs';
 import { bancoLocal } from '../scripts/banco-local.mjs';
 import { OpenAIUiToolMetadataSchema } from '@openai/mcp-extensions/server';
 
@@ -13,13 +13,13 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
     fetch: async (url, opcoes) => {
       const request = new Request(url, opcoes);
       request.headers.set('oai-authenticated-user-id', 'perfil-teste');
-      return atenderMcp(request, { DB }, '<div>Interface registrada</div>');
+      return atenderMcp(request, { DB }, '<div id="perguntas-decisoes-app">Interface registrada</div>');
     }
   });
   try {
     await cliente.connect(transporte);
     const ferramentas = await cliente.listTools();
-    assert.equal(ferramentas.tools.filter(item => item._meta?.ui?.visibility?.[0] !== 'app').length, 2);
+    assert.equal(ferramentas.tools.filter(item => item._meta?.ui?.visibility?.[0] !== 'app').length, 4);
     const abertura = ferramentas.tools.find(item => item.name === 'abrir_painel');
     assert.equal(abertura.title, 'Perguntas e decisões');
     assert.equal(abertura._meta.ui.resourceUri, URI_INTERFACE);
@@ -34,7 +34,15 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
     assert.deepEqual(resultado.content, []);
     const recurso = await cliente.readResource({ uri: URI_INTERFACE });
     assert.equal(recurso.contents[0].mimeType, 'text/html;profile=mcp-app');
-    assert.deepEqual(recurso.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen']);
+    assert.equal(recurso.contents[0]._meta['openai/ui'].preferredDisplayMode, 'fullscreen');
+    assert.deepEqual(recurso.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen', 'inline']);
+    const recursoChat = await cliente.readResource({ uri: URI_INTERFACE_CHAT });
+    assert.equal(recursoChat.contents[0]._meta['openai/ui'].preferredDisplayMode, 'inline');
+    assert.match(recursoChat.contents[0].text, /data-apresentacao="chat"/);
+    assert.equal(ferramentas.tools.find(item => item.name === 'criar_formulario_no_chat')._meta.ui.resourceUri, URI_INTERFACE_CHAT);
+    assert.equal(ferramentas.tools.find(item => item.name === 'abrir_no_chat')._meta.ui.resourceUri, URI_INTERFACE_CHAT);
+    const reabertoNoChat = await cliente.callTool({ name: 'abrir_no_chat', arguments: { id: resultado.structuredContent.id } });
+    assert.equal(reabertoNoChat.structuredContent.id, resultado.structuredContent.id);
   } finally { await cliente.close(); DB.fechar(); }
 });
 
@@ -82,9 +90,26 @@ test('Rascunho é reaberto, versões protegem janelas concorrentes e a entrega s
 
 test('Ferramentas visíveis mantêm orçamento de contexto e não repetem o preenchimento', () => {
   const visiveis = FERRAMENTAS.filter(item => item._meta?.ui?.visibility?.[0] !== 'app');
-  assert.equal(visiveis.length, 2);
+  assert.equal(visiveis.length, 4);
   const tamanho = new TextEncoder().encode(JSON.stringify(visiveis)).length;
   assert.ok(tamanho < 3500, `Definições visíveis excessivas: ${tamanho} bytes.`);
+});
+
+test('Formulário criado no chat reabre na lateral com o mesmo id, respostas e observações', async () => {
+  const DB = bancoLocal();
+  try {
+    const criado = await chamarFerramenta('criar_formulario_no_chat', { perguntas: [{ texto: 'Concorda?', tipo: 'sim_nao' }] }, 'dono', DB);
+    const id = criado.structuredContent.id;
+    await chamarFerramenta('salvar_rascunho', { id, versao: 1, rascunho: { respostas: { p1: 'Sim' }, observacoes: { p1: 'Preservar ao trocar de apresentação.' } } }, 'dono', DB);
+    const lateral = await chamarFerramenta('abrir_painel', { id }, 'dono', DB);
+    const chat = await chamarFerramenta('abrir_no_chat', { id }, 'dono', DB);
+    assert.deepEqual(chat, lateral);
+    assert.equal(lateral._meta.rascunho.respostas.p1, 'Sim');
+    assert.equal(lateral._meta.rascunho.observacoes.p1, 'Preservar ao trocar de apresentação.');
+    assert.equal((await chamarFerramenta('listar_pendentes', {}, 'dono', DB))._meta.pendentes.length, 1);
+    await assert.rejects(chamarFerramenta('abrir_no_chat', { id }, 'outro-dono', DB), /acesso não autorizado/);
+    await assert.rejects(chamarFerramenta('criar_formulario_no_chat', {}, 'dono', DB), /Lista de perguntas obrigatória/);
+  } finally { DB.fechar(); }
 });
 
 test('Falha na entrega permite retomar a edição sem perder respostas', async () => {

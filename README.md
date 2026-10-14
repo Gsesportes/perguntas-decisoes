@@ -1,6 +1,12 @@
 # Perguntas e decisões
 
-Plugin local para reunir perguntas e classificações no painel lateral do Codex desktop.
+Plugin local para reunir perguntas e classificações na barra lateral direita do Codex desktop, com apresentação opcional dentro da conversa.
+
+A versão 0.3.8 mantém a barra lateral direita como apresentação principal. O modo no chat é opcional e usado somente quando solicitado. O aplicativo recebe preferências e recursos distintos para cada apresentação; o modo efetivamente confirmado continua sendo respeitado.
+
+O formulário usa espaçamentos menores, alternativas mais próximas e caixas de texto/observações compactas. O tamanho das letras e os alvos para toque foram preservados.
+
+O instalador 0.3.5 citado abaixo continua sendo a versão publicada. Para testar as melhorias desta fonte antes de um novo instalador, siga **Construir e conferir a fonte**. Os testes automatizados verificam protocolo e preservação de dados; a abertura visual nativa das duas apresentações ainda precisa ser conferida no aplicativo.
 
 ![Logo](assets/logo-verde.png)
 
@@ -33,7 +39,7 @@ npm run package:desktop
 npm run verificar:desktop
 ```
 
-O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, duas ferramentas visíveis e retomada. Isso não comprova abertura ou entrega na interface nativa.
+O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, quatro ferramentas visíveis, as duas apresentações e retomada do mesmo formulário. Isso não comprova abertura ou entrega na interface nativa.
 
 ## Instalar no Codex
 
@@ -79,7 +85,7 @@ Para misturar tipos:
 {"perguntas":[{"texto":"Concorda?","tipo":"sim_nao"},{"texto":"Sua nota","tipo":"nota","min":1,"max":5},"O que deseja acrescentar?"]}
 ```
 
-As duas ferramentas visíveis são `criar_formulario` e `abrir_painel`. Ao criar, o modelo recebe identificador e quantidade; perguntas, rascunhos e operações internas ficam nos metadados da interface. As respostas entram no contexto quando a pessoa escolhe entregá-las.
+As ferramentas padrão são `criar_formulario` e `abrir_painel`, que abrem a barra lateral direita. Somente para um pedido explícito de uso no chat, chamar `criar_formulario_no_chat` ou `abrir_no_chat`. Reabrir o mesmo id troca apenas a apresentação, preservando respostas e observações. Ao criar, o modelo recebe identificador e quantidade; perguntas, rascunhos e operações internas ficam nos metadados da interface. As respostas entram no contexto quando a pessoa escolhe entregá-las.
 
 Para medir os bytes das definições:
 

@@ -34,44 +34,45 @@
   </section>
 </div>
 <style>
-#perguntas-decisoes-app { color-scheme: inherit; }
-#perguntas-decisoes-app .pd-painel { --pd-fundo:light-dark(#fff,#202123); --pd-texto:light-dark(#242628,#f2f3f4); --pd-secundario:light-dark(#62676d,#b8bdc4); --pd-linha:light-dark(#cddcd5,#415c50); --pd-suave:light-dark(#f5f6f7,#2b2d31); --pd-forte:light-dark(#007568,#8ad7bf); --pd-inverso:light-dark(#fff,#143d31); --pd-erro:light-dark(#9d2828,#ffb5b5); color:var(--pd-texto); background:var(--pd-fundo); border:1px solid var(--pd-linha); border-radius:14px; max-width:620px; margin:0 auto; font:14px/1.5 system-ui,sans-serif; overflow-wrap:anywhere; }
-#perguntas-decisoes-app header { padding:22px; }
-#perguntas-decisoes-app h2 { margin:4px 0 14px; font-size:23px; line-height:1.25; font-weight:500; }
+#perguntas-decisoes-app { color-scheme: inherit; width:100%; min-width:0; }
+html[data-modo-exibicao="inline"] body { padding:0; }
+#perguntas-decisoes-app .pd-painel { --pd-fundo:light-dark(#fff,#202123); --pd-texto:light-dark(#242628,#f2f3f4); --pd-secundario:light-dark(#62676d,#b8bdc4); --pd-linha:light-dark(#cddcd5,#415c50); --pd-suave:light-dark(#f5f6f7,#2b2d31); --pd-forte:light-dark(#007568,#8ad7bf); --pd-inverso:light-dark(#fff,#143d31); --pd-erro:light-dark(#9d2828,#ffb5b5); color:var(--pd-texto); background:var(--pd-fundo); border:1px solid var(--pd-linha); border-radius:14px; max-width:620px; margin:0 auto; font:14px/1.35 system-ui,sans-serif; overflow-wrap:anywhere; }
+#perguntas-decisoes-app header { padding:10px 12px; }
+#perguntas-decisoes-app h2 { margin:2px 0 8px; font-size:23px; line-height:1.25; font-weight:500; }
 #perguntas-decisoes-app .pd-origem,#perguntas-decisoes-app .pd-andamento { font-size:12px; color:var(--pd-secundario); }
-#perguntas-decisoes-app .pd-andamento { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+#perguntas-decisoes-app .pd-andamento { display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
 #perguntas-decisoes-app progress { display:block; width:100%; height:5px; margin-top:8px; border:0; appearance:none; background:var(--pd-suave); color:var(--pd-forte); }
 #perguntas-decisoes-app progress::-webkit-progress-bar { background:var(--pd-suave); }
 #perguntas-decisoes-app progress::-webkit-progress-value { background:var(--pd-forte); }
 #perguntas-decisoes-app progress::-moz-progress-bar { background:var(--pd-forte); }
-#perguntas-decisoes-app fieldset { min-inline-size:0; padding:18px 22px; margin:0; border:0; border-top:1px solid var(--pd-linha); }
-#perguntas-decisoes-app legend { float:left; width:100%; padding:0; margin-bottom:10px; font-weight:500; }
+#perguntas-decisoes-app fieldset { min-inline-size:0; padding:10px 12px; margin:0; border:0; border-top:1px solid var(--pd-linha); }
+#perguntas-decisoes-app legend { float:left; width:100%; padding:0; margin-bottom:6px; font-weight:500; }
 #perguntas-decisoes-app legend + * { clear:both; }
 #perguntas-decisoes-app legend span { margin-right:6px; color:var(--pd-secundario); font-variant-numeric:tabular-nums; }
-#perguntas-decisoes-app .pd-opcoes { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
-#perguntas-decisoes-app .pd-opcoes label { display:flex; align-items:center; gap:7px; padding:8px 10px; background:var(--pd-suave); border-radius:7px; }
+#perguntas-decisoes-app .pd-opcoes { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+#perguntas-decisoes-app .pd-opcoes label { display:flex; align-items:center; gap:4px; padding:4px 6px; background:var(--pd-suave); border-radius:7px; }
 #perguntas-decisoes-app .pd-opcoes label:has(input:checked) { background:var(--pd-forte); color:var(--pd-inverso); }
 #perguntas-decisoes-app input[type="radio"],#perguntas-decisoes-app input[type="checkbox"] { margin:0; accent-color:var(--pd-forte); }
-#perguntas-decisoes-app .pd-rotulo { display:block; margin:8px 0 5px; font-size:12px; color:var(--pd-secundario); }
-#perguntas-decisoes-app textarea,#perguntas-decisoes-app input[type="number"],#perguntas-decisoes-app input[type="date"],#perguntas-decisoes-app input[type="time"] { box-sizing:border-box; width:100%; font:inherit; padding:8px 10px; background:var(--pd-fundo); color:var(--pd-texto); border:1px solid var(--pd-linha); border-radius:7px; }
-#perguntas-decisoes-app textarea { display:block; resize:vertical; min-height:38px; }
+#perguntas-decisoes-app .pd-rotulo { display:block; margin:4px 0 3px; font-size:12px; color:var(--pd-secundario); }
+#perguntas-decisoes-app textarea,#perguntas-decisoes-app input[type="number"],#perguntas-decisoes-app input[type="date"],#perguntas-decisoes-app input[type="time"] { box-sizing:border-box; width:100%; font:inherit; padding:4px 6px; background:var(--pd-fundo); color:var(--pd-texto); border:1px solid var(--pd-linha); border-radius:7px; }
+#perguntas-decisoes-app textarea { display:block; resize:vertical; min-height:30px; }
 #perguntas-decisoes-app textarea::placeholder { color:var(--pd-secundario); opacity:1; }
-#perguntas-decisoes-app .pd-gerais { padding:18px 22px; border-top:1px solid var(--pd-linha); }
-#perguntas-decisoes-app .pd-gerais label { display:block; margin-bottom:6px; font-weight:500; }
+#perguntas-decisoes-app .pd-gerais { padding:10px 12px; border-top:1px solid var(--pd-linha); }
+#perguntas-decisoes-app .pd-gerais label { display:block; margin-bottom:4px; font-weight:500; }
 #perguntas-decisoes-app .pd-gerais span { color:var(--pd-secundario); font-size:12px; font-weight:400; margin-left:4px; }
-#perguntas-decisoes-app footer { padding:16px 22px 20px; background:var(--pd-suave); border-radius:0 0 14px 14px; }
-#perguntas-decisoes-app button { color:var(--pd-texto); background:var(--pd-fundo); border:1px solid var(--pd-linha); border-radius:8px; font:inherit; padding:9px 12px; }
+#perguntas-decisoes-app footer { padding:10px 12px 12px; background:var(--pd-suave); border-radius:0 0 14px 14px; }
+#perguntas-decisoes-app button { color:var(--pd-texto); background:var(--pd-fundo); border:1px solid var(--pd-linha); border-radius:8px; font:inherit; padding:4px 8px; min-height:30px; }
 #perguntas-decisoes-app button:disabled { opacity:.55; cursor:not-allowed; }
 #perguntas-decisoes-app button:focus-visible,#perguntas-decisoes-app input:focus-visible,#perguntas-decisoes-app textarea:focus-visible { outline:2px solid var(--pd-forte); outline-offset:2px; }
 #perguntas-decisoes-app .pd-principal { color:var(--pd-inverso); background:var(--pd-forte); border-color:var(--pd-forte); }
-#perguntas-decisoes-app .pd-navegacao { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+#perguntas-decisoes-app .pd-navegacao { display:flex; gap:6px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 #perguntas-decisoes-app [data-estado] { font-size:12px; color:var(--pd-secundario); }
-#perguntas-decisoes-app .pd-entregas { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-#perguntas-decisoes-app .pd-conexao { font-size:12px; color:var(--pd-secundario); margin:12px 0 0; }
-#perguntas-decisoes-app [data-erro] { color:var(--pd-erro); margin:0 0 12px; }
-#perguntas-decisoes-app .pd-sucesso { margin:0; padding:18px 22px; }
-#perguntas-decisoes-app [data-pendentes] { padding:0 22px 20px; display:grid; gap:8px; }
+#perguntas-decisoes-app .pd-entregas { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+#perguntas-decisoes-app .pd-conexao { font-size:12px; color:var(--pd-secundario); margin:8px 0 0; }
+#perguntas-decisoes-app [data-erro] { color:var(--pd-erro); margin:0 0 8px; }
+#perguntas-decisoes-app .pd-sucesso { margin:0; padding:10px 12px; }
+#perguntas-decisoes-app [data-pendentes] { padding:0 12px 12px; display:grid; gap:6px; }
 #perguntas-decisoes-app [hidden] { display:none !important; }
-@media(max-width:420px) { #perguntas-decisoes-app header,#perguntas-decisoes-app fieldset,#perguntas-decisoes-app .pd-gerais,#perguntas-decisoes-app footer { padding-left:14px; padding-right:14px; } }
+@media(max-width:420px) { #perguntas-decisoes-app header,#perguntas-decisoes-app fieldset,#perguntas-decisoes-app .pd-gerais,#perguntas-decisoes-app footer { padding-left:10px; padding-right:10px; } }
 @media(pointer:coarse) { #perguntas-decisoes-app button,#perguntas-decisoes-app .pd-opcoes label { min-height:44px; box-sizing:border-box; } #perguntas-decisoes-app textarea,#perguntas-decisoes-app input { font-size:16px; } }
 </style>

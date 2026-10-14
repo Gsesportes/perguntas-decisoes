@@ -3,8 +3,10 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { montarInterface } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
+import { EXIBICAO_FORMULARIO, ajustarApresentacao } from './exibicao.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.5' });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.8' }, { availableDisplayModes: EXIBICAO_FORMULARIO.availableDisplayModes });
+const apresentacao = document.getElementById('perguntas-decisoes-app').dataset.apresentacao ?? 'lateral';
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);
@@ -27,6 +29,7 @@ const adaptador = {
 const interfaceUsuario = montarInterface(document.getElementById('perguntas-decisoes-app'), adaptador);
 function aplicarTema() {
   const contexto = aplicativo.getHostContext();
+  if (contexto?.displayMode) document.documentElement.dataset.modoExibicao = contexto.displayMode;
   if (contexto?.theme) applyDocumentTheme(contexto.theme);
   if (contexto?.styles?.variables) applyHostStyleVariables(contexto.styles.variables);
   interfaceUsuario.atualizarNavegacao();
@@ -40,8 +43,10 @@ if (window.parent === window) {
   try {
     await aplicativo.connect();
     aplicarTema();
-    const contexto = aplicativo.getHostContext();
-    if (contexto?.displayMode === 'inline' && contexto.availableDisplayModes?.includes('fullscreen')) await aplicativo.requestDisplayMode({ mode: 'fullscreen' });
+    const modo = await ajustarApresentacao(aplicativo, apresentacao);
+    document.documentElement.dataset.modoExibicao = modo;
+    const esperado = apresentacao === 'chat' ? 'inline' : 'fullscreen';
+    if (modo !== esperado) interfaceUsuario.mostrarErro(`O aplicativo não confirmou a abertura ${apresentacao === 'chat' ? 'dentro da conversa' : 'na barra lateral'}.`);
   } catch (erro) {
     adaptador.conexao = 'Conexão com o aplicativo não confirmada. Nenhuma entrega foi realizada.';
     interfaceUsuario.mostrarErro(`${adaptador.conexao} ${erro.message}`);

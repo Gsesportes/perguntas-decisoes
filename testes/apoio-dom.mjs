@@ -2,6 +2,7 @@ export class ElementoTeste {
   constructor(tag = 'div') { this.tag = tag; this.attrs = {}; this.dataset = {}; this.children = []; this.events = {}; this.hidden = false; this.disabled = false; this.value = ''; this.checked = false; this.textContent = ''; }
   get textContent() { return this.conteudoTexto; }
   get className() { return this.attrs.class ?? ''; }
+  get id() { return this.attrs.id ?? ''; }
   set className(valor) { this.attrs.class = valor; }
   get valueAsNumber() { return this.value === '' ? NaN : Number(this.value); }
   set textContent(valor) { this.conteudoTexto = valor; for (const item of this.children ?? []) if (item instanceof ElementoTeste) item.parentElement = null; this.children = []; }
@@ -37,6 +38,7 @@ export function criarDomTeste() {
   globalThis.window = { addEventListener() {}, Event: class { constructor(type) { this.type = type; } } };
   const raiz = new ElementoTeste(); const formulario = new ElementoTeste('form'); formulario.setAttribute('data-formulario', ''); raiz.append(formulario);
   document.raiz = raiz;
+  document.getElementById = id => raiz.querySelector('#' + id);
   for (const nome of ['origem', 'erro', 'progresso', 'pagina', 'barra', 'anterior', 'proximo', 'entregas', 'gerais', 'conexao', 'retomar', 'estado', 'titulo', 'pendentes', 'sucesso', 'limpar', 'perguntas']) {
     const item = new ElementoTeste(['anterior', 'proximo', 'retomar', 'limpar'].includes(nome) ? 'button' : 'div'); item.setAttribute('data-' + nome, '');
     (['origem', 'titulo', 'pendentes', 'sucesso'].includes(nome) ? raiz : formulario).append(item);

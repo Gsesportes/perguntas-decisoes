@@ -118,6 +118,6 @@ export async function atenderMcp(request, env, interfaceHtml) {
     return responder(result);
   } catch (erro) {
     if (!(erro instanceof ErroFormulario)) console.error('Falha no serviço de formulários:', erro.message);
-    return responder({ isError: true, content: [{ type: 'text', text: erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento. O recebimento ou salvamento não foi confirmado.' }] });
+    return responder({ isError: true, ...(erro instanceof ErroFormulario ? { _meta: { codigo_erro: erro.codigo } } : {}), content: [{ type: 'text', text: erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento. O recebimento ou salvamento não foi confirmado.' }] });
   }
 }

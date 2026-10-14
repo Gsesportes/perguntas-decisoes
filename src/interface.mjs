@@ -2,6 +2,7 @@ import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega, perguntasVis
 import { criarDitadoInterface } from './ditado-interface.mjs';
 import { verificarResposta } from './formatos.mjs';
 import { montarControleFormato, montarBarra, montarEstrelas } from './controles-formatos.mjs';
+import { conciliarRascunhos, conteudoIgual, perguntasAlteradas } from './conciliacao.mjs';
 
 export function coordenarCargaInicial({ carregar, listar, mostrarErro }) {
   let recebeuResultado = false;
@@ -43,6 +44,9 @@ export function montarInterface(raiz, adaptador) {
   let entregaPreparada = null;
   let filaSalvamento = Promise.resolve();
   let erroSalvamento = null;
+  let conflitoPendente = false;
+  const controlesPendentes = new Set();
+  let geraisPendentes = false;
   let salvamentosPendentes = 0;
   let carregamentoPendente = null;
   let pedidoLeitura = 0;
@@ -94,6 +98,7 @@ export function montarInterface(raiz, adaptador) {
       raiz.querySelectorAll('form button').forEach(botao => { botao.disabled = preparando || botao.dataset.editavel !== 'true' || botao.dataset.condiciona === 'true' || botao.dataset.indisponivel === 'true'; });
       atualizarNavegacao();
     } else {
+      atualizarControlesConciliados();
       bloquear(ocupado);
       aplicarCarregamentoPendente();
     }
@@ -127,7 +132,7 @@ export function montarInterface(raiz, adaptador) {
     const aviso = obter('[data-erro]');
     if (erroSalvamento && !salvamentosPendentes && !ocupado && !ditando && !entregue && !entregaPreparada && !preparacaoPendente && !aviso.querySelector('[data-recuperacao]')) {
       const opcoes = elemento('span', { 'data-recuperacao': '' });
-      opcoes.append(elemento('span', {}, ' Seu texto continua nesta tela. Usar a versão salva descarta alterações locais; guardar seu preenchimento substitui as respostas da versão atual. '));
+      opcoes.append(elemento('span', {}, ' Seu preenchimento continua nesta tela. Usar a versão salva descarta alterações locais; guardar meu preenchimento mantém suas escolhas nos campos em conflito e preserva os demais campos salvos. '));
       for (const [manterLocal, texto] of [[false, 'Usar versão salva'], [true, 'Guardar meu preenchimento']]) {
         const botao = elemento('button', { type: 'button', class: 'cursor-interaction' }, texto);
         botao.addEventListener('click', () => recuperarSalvamento(manterLocal)); opcoes.append(botao);
@@ -135,20 +140,80 @@ export function montarInterface(raiz, adaptador) {
       aviso.append(opcoes); aviso.hidden = false;
     }
   }
+  function atualizarControlesConciliados() {
+    if (ditando || !atual) return;
+    if (controlesPendentes.size) desenharPagina(true, controlesPendentes);
+    if (geraisPendentes) obter('#pd-observacoes-gerais').value = atual.rascunho.gerais;
+    controlesPendentes.clear();
+    geraisPendentes = false;
+  }
+  function conferirLeitura(origem, leitura) {
+    if (leitura.isError || leitura.structuredContent?.id !== origem.id || !Number.isSafeInteger(leitura._meta?.versao) || leitura._meta.versao < origem.versao) throw new Error('Não consegui conferir a versão atual do formulário. Seu preenchimento foi preservado.');
+    if (leitura._meta.preparacao) throw new Error('Este formulário está em entrega em outra aba. Seu preenchimento foi preservado; confira a conversa antes de retomar.');
+    if (!conteudoIgual(origem.formulario.perguntas, leitura._meta.formulario?.perguntas)) throw new Error('As perguntas mudaram em outra aba. Seu preenchimento foi preservado; confira a versão salva.');
+    validarRascunho(origem.formulario, leitura._meta.rascunho);
+    return leitura._meta;
+  }
+  function conciliarOuFalhar(origem, base, preenchimento, salvo) {
+    const resultado = conciliarRascunhos(base, preenchimento, salvo);
+    if (resultado.conflitos.length) {
+      conflitoPendente = true;
+      const primeiro = resultado.conflitos[0];
+      const pergunta = origem.formulario.perguntas.find(item => item.id === primeiro.pergunta);
+      const campo = primeiro.campo === 'gerais' ? 'observações gerais' : `${primeiro.campo === 'observacoes' ? 'observação' : 'resposta'} de “${pergunta?.texto ?? primeiro.pergunta}”`;
+      throw new Error(`A ${campo} foi alterada de formas diferentes em duas abas. Escolha abaixo qual preenchimento manter; suas alterações continuam nesta tela.`);
+    }
+    return validarRascunho(origem.formulario, resultado.rascunho).rascunho;
+  }
+  async function gravarConfirmado(origem, versaoAnterior, rascunho) {
+    const versao = await adaptador.salvar(origem.id, versaoAnterior, rascunho);
+    if (!Number.isSafeInteger(versao) || versao <= versaoAnterior) throw new Error('O servidor não confirmou uma nova versão do preenchimento.');
+    return versao;
+  }
   function salvar() {
     if (!atual || entregue) return Promise.resolve({ confirmado: false, erro: new Error('Este formulário não está disponível para edição.') });
     const origem = atual;
     const preenchimento = structuredClone(origem.rascunho);
+    const baseLocalAnterior = structuredClone(origem.baseLocalConfirmada);
+    const servidorAnterior = structuredClone(origem.rascunhoServidor);
     salvamentosPendentes += 1;
     obter('[data-estado]').textContent = 'Guardando progresso…';
     const operacao = filaSalvamento.then(async () => {
       try {
+        if (conflitoPendente) throw erroSalvamento ?? new Error('Escolha qual preenchimento manter antes de confirmar.');
         validarRascunho(origem.formulario, preenchimento);
-        const versao = await adaptador.salvar(origem.id, origem.versao, preenchimento);
-        if (!Number.isSafeInteger(versao) || versao <= origem.versao) throw new Error('O servidor não confirmou uma nova versão do preenchimento.');
+        // Atualiza a base das operações enfileiradas sem confundir uma edição
+        // feita depois da conciliação com uma edição sobre dados antigos.
+        const base = conciliarRascunhos(baseLocalAnterior, origem.baseLocalConfirmada, servidorAnterior, { preferirLocal: true }).rascunho;
+        let confirmado = conciliarOuFalhar(origem, base, preenchimento, origem.rascunhoServidor);
+        let versao;
+        try { versao = await gravarConfirmado(origem, origem.versao, confirmado); }
+        catch (erro) {
+          if (erro.codigo !== 'conflito') throw erro;
+          conflitoPendente = true;
+          const meta = conferirLeitura(origem, await adaptador.ler(origem.id));
+          confirmado = conciliarOuFalhar(origem, base, preenchimento, meta.rascunho);
+          if (conteudoIgual(confirmado, meta.rascunho)) versao = meta.versao;
+          else {
+            try { versao = await gravarConfirmado(origem, meta.versao, confirmado); }
+            catch (novaFalha) {
+              if (novaFalha.codigo === 'conflito') { conflitoPendente = true; throw new Error('O formulário mudou novamente durante a confirmação. Seu preenchimento foi preservado; escolha abaixo como continuar.'); }
+              throw novaFalha;
+            }
+          }
+        }
         origem.versao = versao;
+        origem.rascunhoServidor = structuredClone(confirmado);
+        origem.baseLocalConfirmada = preenchimento;
+        const anterior = origem.rascunho;
+        origem.rascunho = conciliarRascunhos(preenchimento, anterior, confirmado, { preferirLocal: true }).rascunho;
+        for (const id of perguntasAlteradas(anterior, origem.rascunho)) controlesPendentes.add(id);
+        if (anterior.gerais !== origem.rascunho.gerais) geraisPendentes = true;
+        atualizarControlesConciliados();
+        conflitoPendente = false;
+        if (erroSalvamento) mostrarErro('');
         erroSalvamento = null;
-        obter('[data-estado]').textContent = adaptador.salvamento ?? 'Progresso guardado';
+        obter('[data-estado]').textContent = salvamentosPendentes > 1 ? 'Guardando progresso…' : adaptador.salvamento ?? 'Progresso guardado';
         return { confirmado: true, versao };
       } catch (erro) {
         erroSalvamento = erro;
@@ -240,12 +305,12 @@ export function montarInterface(raiz, adaptador) {
     ditado.adicionar(observacao, { campo: 'observacao', pergunta: pergunta.id }, `observação da pergunta ${indice + 1}`);
     return caixa;
   }
-  function desenharPagina(preservar = false) {
+  function desenharPagina(preservar = false, recriar = new Set()) {
     const visiveis = perguntasVisiveis(atual.formulario, atual.rascunho.respostas);
     atual.rascunho.pagina = Math.min(atual.rascunho.pagina, Math.max(0, Math.ceil(visiveis.length / POR_PAGINA) - 1));
     const inicio = atual.rascunho.pagina * POR_PAGINA;
     const container = obter('[data-perguntas]');
-    const existentes = preservar ? new Map([...container.children].filter(item => item.dataset?.id).map(item => [item.dataset.id, item])) : new Map();
+    const existentes = preservar ? new Map([...container.children].filter(item => item.dataset?.id && !recriar.has(item.dataset.id)).map(item => [item.dataset.id, item])) : new Map();
     const elementos = []; let grupo = null;
     for (const pergunta of visiveis.slice(inicio, inicio + POR_PAGINA)) {
       if (pergunta.grupo && pergunta.grupo.id !== grupo) elementos.push(elemento('p', { class: 'pd-tabela-titulo' }, pergunta.grupo.texto));
@@ -253,8 +318,14 @@ export function montarInterface(raiz, adaptador) {
       elementos.push(existentes.get(pergunta.id) ?? desenharPergunta(pergunta, atual.formulario.perguntas.indexOf(pergunta)));
     }
     const foco = preservar ? document.activeElement : null;
+    const selecao = foco && typeof foco.selectionStart === 'number' ? [foco.selectionStart, foco.selectionEnd] : null;
     container.replaceChildren(...elementos);
     if (foco?.isConnected) foco.focus({ preventScroll: true });
+    else if (foco?.id) {
+      const substituto = document.getElementById(foco.id);
+      substituto?.focus({ preventScroll: true });
+      if (selecao && substituto?.setSelectionRange) substituto.setSelectionRange(...selecao);
+    }
     obter('#pd-observacoes-gerais').value = atual.rascunho.gerais;
     const avisoCondicoes = obter('[data-condicoes]');
     if (avisoCondicoes) avisoCondicoes.hidden = !atual.formulario.perguntas.some(pergunta => pergunta.se);
@@ -265,7 +336,13 @@ export function montarInterface(raiz, adaptador) {
       const { pendentes } = validarRascunho(atual.formulario, atual.rascunho);
       const inicio = atual.rascunho.pagina * POR_PAGINA;
       const faltantes = perguntasVisiveis(atual.formulario, atual.rascunho.respostas).slice(inicio, inicio + POR_PAGINA).filter(pergunta => pendentes.includes(pergunta.id));
-      if (faltantes.length) { mostrarErro(`Faltam ${faltantes.length} respostas nesta página. Primeiro item: ${faltantes[0].texto}`); return false; }
+      if (faltantes.length) {
+        const pergunta = faltantes[0], resposta = atual.rascunho.respostas[pergunta.id];
+        if (pergunta.tipo === 'intervalo' && resposta) {
+          mostrarErro(resposta.min === undefined || resposta.max === undefined ? `Complete ${resposta.min === undefined && resposta.max === undefined ? 'o mínimo e o máximo' : resposta.min === undefined ? 'o mínimo' : 'o máximo'} de “${pergunta.texto}”.` : `Corrija “${pergunta.texto}”: o mínimo (${resposta.min}) deve ser menor ou igual ao máximo (${resposta.max}).`);
+        } else mostrarErro(`Faltam ${faltantes.length} respostas nesta página. Primeiro item: ${pergunta.texto}`);
+        return false;
+      }
       return true;
     } catch (erro) { mostrarErro(erro.message); return false; }
   }
@@ -363,12 +440,15 @@ export function montarInterface(raiz, adaptador) {
       const leitura = await adaptador.ler(origem.id);
       if (leitura.isError) throw new Error(leitura.content?.find(item => item.type === 'text')?.text ?? 'Não consegui reabrir o formulário.');
       if (manterLocal) {
-        if (leitura._meta.preparacao) throw new Error('A versão salva está em entrega. Use a versão salva e confira a conversa antes de retomar.');
-        validarRascunho(origem.formulario, origem.rascunho);
-        origem.versao = await adaptador.salvar(origem.id, leitura._meta.versao, structuredClone(origem.rascunho));
-        erroSalvamento = null; mostrarErro(''); obter('[data-estado]').textContent = 'Progresso guardado';
+        const meta = conferirLeitura(origem, leitura);
+        const preenchimento = structuredClone(origem.rascunho);
+        const conciliado = conciliarRascunhos(origem.rascunhoServidor, preenchimento, meta.rascunho, { preferirLocal: true }).rascunho;
+        validarRascunho(origem.formulario, conciliado);
+        origem.versao = await gravarConfirmado(origem, meta.versao, conciliado);
+        origem.baseLocalConfirmada = preenchimento; origem.rascunhoServidor = structuredClone(conciliado); origem.rascunho = conciliado;
+        conflitoPendente = false; erroSalvamento = null; mostrarErro(''); desenharPagina(); obter('[data-estado]').textContent = 'Progresso guardado';
       } else {
-        erroSalvamento = null; carregamentoPendente = leitura;
+        conflitoPendente = false; erroSalvamento = null; carregamentoPendente = leitura;
       }
     } catch (erro) { erroSalvamento = erro; mostrarErro(erro.message); }
     finally { bloquear(false); aplicarCarregamentoPendente(); }
@@ -436,6 +516,8 @@ export function montarInterface(raiz, adaptador) {
       }
     }
     atual = { id: resultado.structuredContent.id, versao: meta.versao, formulario: meta.formulario, rascunho: structuredClone(meta.rascunho ?? rascunhoVazio()) };
+    atual.baseLocalConfirmada = structuredClone(atual.rascunho); atual.rascunhoServidor = structuredClone(atual.rascunho);
+    conflitoPendente = false; controlesPendentes.clear(); geraisPendentes = false;
     entregue = false; entregaPreparada = meta.preparacao ? { ...meta.preparacao, versao: meta.versao } : null; erroSalvamento = null; preparacaoPendente = false;
     if (recebidos.has(atual.id)) { entregue = true; entregaPreparada = { token: recebidos.get(atual.id), versao: meta.versao }; }
     obter('[data-titulo]').textContent = atual.formulario.titulo;

@@ -131,13 +131,39 @@ export function montarControleFormato({ pergunta, resposta, alterar, lerImagem, 
     const valores = { ...(resposta ?? {}) };
     bloco.className += ' pd-intervalo';
     const resumo = criar('p', { class: 'pd-ajuda pd-intervalo-resumo', role: 'status' });
-    const atualizar = () => { resumo.textContent = valores.min === undefined || valores.max === undefined ? 'Preencha os dois limites.' : valores.min > valores.max ? 'O mínimo deve ser menor ou igual ao máximo.' : `Faixa de ${valores.min} a ${valores.max}${pergunta.unidade ? ' ' + pergunta.unidade : ''}`; };
-    for (const [chave, rotulo] of [['min', 'Mínimo'], ['max', 'Máximo']]) bloco.append(numero(`${pergunta.id}-${chave}`, rotulo + (pergunta.unidade ? ` (${pergunta.unidade})` : ''), pergunta, valores[chave], valor => {
-      if (!podeEditar()) return;
-      if (valor === undefined) delete valores[chave]; else valores[chave] = valor;
-      atualizar(); alterar({ ...valores });
-    }));
-    atualizar(); bloco.append(resumo);
+    const aviso = criar('p', { class: 'pd-aviso-limite pd-intervalo-resumo', role: 'alert', 'data-aviso-intervalo': '' });
+    const campos = new Map();
+    const diferenca = conteudo => (conteudo.min !== undefined && conteudo.max !== undefined) ? Math.max(0, conteudo.min - conteudo.max) : 0;
+    const atualizar = () => {
+      resumo.textContent = valores.min === undefined || valores.max === undefined ? 'Preencha os dois limites.' : `Faixa de ${valores.min} a ${valores.max}${pergunta.unidade ? ' ' + pergunta.unidade : ''}`;
+      aviso.hidden = diferenca(valores) === 0;
+      aviso.textContent = aviso.hidden ? '' : `O mínimo (${valores.min}) deve ser menor ou igual ao máximo (${valores.max}). Reduza o mínimo ou aumente o máximo; os valores anteriores foram preservados.`;
+      campos.get('min')?.setAttribute('max', valores.max ?? pergunta.max);
+      campos.get('max')?.setAttribute('min', valores.min ?? pergunta.min);
+      for (const campo of campos.values()) campo.setAttribute('aria-invalid', String(!aviso.hidden));
+    };
+    for (const [chave, rotulo] of [['min', 'Mínimo'], ['max', 'Máximo']]) {
+      const grupo = numero(`${pergunta.id}-${chave}`, rotulo + (pergunta.unidade ? ` (${pergunta.unidade})` : ''), pergunta, valores[chave], (valor, campo) => {
+        if (!podeEditar()) return;
+        const propostos = { ...valores };
+        if (valor === undefined) delete propostos[chave]; else propostos[chave] = valor;
+        try {
+          if (campo.validity?.badInput || (campo.value !== '' && valor === undefined)) throw new Error('Use um número válido.');
+          verificarResposta(pergunta, propostos);
+          if (diferenca(propostos) > 0 && (diferenca(valores) === 0 || diferenca(propostos) >= diferenca(valores))) throw new Error(`O mínimo deve ser menor ou igual ao máximo. ${chave === 'min' ? `Use no máximo ${valores.max}.` : `Use no mínimo ${valores.min}.`}`);
+        } catch (erro) {
+          campo.value = valores[chave] === undefined ? '' : String(valores[chave]);
+          aviso.textContent = `${erro.message} O valor anterior foi mantido.`; aviso.hidden = false;
+          return;
+        }
+        if (valores[chave] === valor) { atualizar(); return; }
+        if (valor === undefined) delete valores[chave]; else valores[chave] = valor;
+        atualizar(); alterar({ ...valores });
+      });
+      const campo = grupo.querySelector('input');
+      campos.set(chave, campo); bloco.append(grupo);
+    }
+    atualizar(); bloco.append(resumo, aviso);
     return bloco;
   }
   if (pergunta.tipo === 'lista') {

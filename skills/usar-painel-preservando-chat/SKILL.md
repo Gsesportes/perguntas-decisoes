@@ -20,3 +20,5 @@ Para classificar um lote de textos, use perguntas textuais, tipo tabela e opçõ
 Data e hora juntas usam tipo data_hora. Na versão 0.4.5 são duas colunas, Data e Hora, em uma pergunta e com observação comum. A resposta mantém o horário local escolhido, sem conversão de fuso. Novos formulários usam formato 4, indisponível aos servidores anteriores. Confira a versão exibida no painel; cada versão anuncia sua própria URI de interface.
 
 Não atribua escolhas nem confirme ordem pelo usuário. Os controles não selecionam resposta inicial. Use observações livres em todos os formatos. Novos formatos exigem versão 0.4.0; confirme a versão e os controles do painel antes de declarar teste de uso.
+
+Na 0.4.6, a confirmação recupera versões antigas conciliando campos independentes. Duas alterações diferentes na mesma resposta exigem escolha humana no painel; não force a versão nem sobrescreva respostas pelo agente. Intervalo limita os valores entre si durante a edição e informa inversão ou limite faltante ao avançar. Rascunhos antigos inválidos permanecem disponíveis para correção.

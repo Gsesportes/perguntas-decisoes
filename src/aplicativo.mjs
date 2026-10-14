@@ -11,7 +11,11 @@ const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);
   const resultado = await aplicativo.callServerTool({ name, arguments: args });
-  if (resultado.isError) throw new Error(resultado.content?.find(item => item.type === 'text')?.text ?? 'Operação não confirmada.');
+  if (resultado.isError) {
+    const erro = new Error(resultado.content?.find(item => item.type === 'text')?.text ?? 'Operação não confirmada.');
+    erro.codigo = resultado._meta?.codigo_erro;
+    throw erro;
+  }
   return resultado;
 }
 const adaptador = {

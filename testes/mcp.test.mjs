@@ -72,6 +72,9 @@ test('Rascunho é reaberto, versões protegem janelas concorrentes e a entrega s
     const rascunho = { respostas: { p1: 'Não' }, observacoes: { p1: 'Ressalva preservada' }, gerais: '' };
     await chamarFerramenta('salvar_rascunho', { id, versao: 1, rascunho }, dono, DB);
     await assert.rejects(chamarFerramenta('salvar_rascunho', { id, versao: 1, rascunho }, dono, DB), /mudou/);
+    const recusa = await atenderMcp(new Request('https://teste.local/mcp', { method: 'POST', headers: { 'oai-authenticated-user-id': dono }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'salvar_rascunho', arguments: { id, versao: 1, rascunho } } }) }), { DB }, 'Interface');
+    const recusado = (await recusa.json()).result;
+    assert.equal(recusado.isError, true); assert.equal(recusado._meta.codigo_erro, 'conflito');
     const reaberto = await chamarFerramenta('ler_formulario', { id }, dono, DB);
     assert.equal(reaberto._meta.rascunho.respostas.p1, 'Não');
     const preparado = await chamarFerramenta('preparar_entrega', { id, versao: reaberto._meta.versao, rascunho }, dono, DB);

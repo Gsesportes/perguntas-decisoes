@@ -36,7 +36,7 @@ servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   }
   catch (erro) {
     console.error('Operação local não confirmada:', erro.message);
-    return { isError: true, content: [{ type: 'text', text: params.name === 'controlar_ditado' || erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento local. O progresso não foi confirmado.' }] };
+    return { isError: true, ...(erro instanceof ErroFormulario ? { _meta: { codigo_erro: erro.codigo } } : {}), content: [{ type: 'text', text: params.name === 'controlar_ditado' || erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento local. O progresso não foi confirmado.' }] };
   }
 });
 servidor.onclose = () => { ditado.fechar(); armazenamento.fechar(); };

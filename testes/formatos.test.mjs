@@ -105,6 +105,7 @@ async function painelTeste(perguntas, substituicoes = {}) {
   const raiz = criarDomTeste(), entregas = [];
   const adaptador = {
     origem: 'Verificação isolada', conexao: 'Sem aplicativo nativo', capacidades: () => ({ chat: true, anotacao: true, arquivo: true }),
+    ler: id => chamarFerramenta('ler_formulario', { id }, dono, banco),
     salvar: async (id, versao, rascunho) => (await chamarFerramenta('salvar_rascunho', { id, versao, rascunho }, dono, banco))._meta.versao,
     preparar: async (id, versao, rascunho) => { const r = await chamarFerramenta('preparar_entrega', { id, versao, rascunho }, dono, banco); return { ...r._meta.entrega, versao: r._meta.versao }; },
     entregar: async (modo, entrega) => { entregas.push(entrega); return 'Entrega fictícia'; },
@@ -113,7 +114,7 @@ async function painelTeste(perguntas, substituicoes = {}) {
   const interfaceTeste = montarInterface(raiz, adaptador); interfaceTeste.carregar(criado);
   const ler = async () => (await chamarFerramenta('ler_formulario', { id: criado.structuredContent.id }, dono, banco))._meta.rascunho;
   const reabrir = async () => interfaceTeste.carregar(await chamarFerramenta('ler_formulario', { id: criado.structuredContent.id }, dono, banco));
-  return { banco, raiz, entregas, ler, reabrir };
+  return { banco, raiz, entregas, ler, reabrir, id: criado.structuredContent.id, dono, adaptador };
 }
 async function selecionar(raiz, nome, valor) {
   const controles = raiz.querySelectorAll('input').filter(c => c.attrs.name === nome);
@@ -313,5 +314,77 @@ test('estrelas preservam zero e mínimo personalizado sem selecionar valores ind
     await selecionar(c.raiz, 'p2', 4);
     assert.equal((await c.ler()).respostas.p2, 4);
     assert.equal(segunda.querySelectorAll('[data-estrela]').filter(icone => icone.dataset.preenchida === 'true').length, 4);
+  } finally { c.banco.fechar(); }
+});
+
+test('confirmação da ordem recupera versão antiga quando outra aba alterou só a observação', async () => {
+  const c = await painelTeste([{ texto: 'Prioridades', tipo: 'ordenacao', opcoes: ['Clareza', 'Qualidade', 'Velocidade'] }]);
+  try {
+    await chamarFerramenta('salvar_rascunho', { id: c.id, versao: 1, rascunho: { observacoes: { p1: 'Outra aba' } } }, c.dono, c.banco);
+    const confirmar = c.raiz.querySelector('[data-confirmar-ordem]'); await confirmar.disparar('click'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, ['Clareza', 'Qualidade', 'Velocidade']);
+    assert.equal((await c.ler()).observacoes.p1, 'Outra aba');
+    assert.equal(c.raiz.querySelector('[data-confirmar-ordem]').textContent, 'Confirmar novamente');
+    assert.match(c.raiz.querySelector('[data-estado-ordem]').textContent, /guardada/);
+    assert.equal(c.raiz.querySelector('[data-erro]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+
+test('ordens diferentes em duas abas não são substituídas por repetir confirmação', async () => {
+  const c = await painelTeste([{ texto: 'Prioridades', tipo: 'ordenacao', opcoes: ['A', 'B'] }]);
+  try {
+    await chamarFerramenta('salvar_rascunho', { id: c.id, versao: 1, rascunho: { respostas: { p1: ['B', 'A'] } } }, c.dono, c.banco);
+    const confirmar = c.raiz.querySelector('[data-confirmar-ordem]');
+    await confirmar.disparar('click'); await aguardarFila();
+    assert.equal(confirmar.textContent, 'Tentar confirmar novamente');
+    assert.match(c.raiz.querySelector('[data-estado-ordem]').textContent, /alterada de formas diferentes/);
+    await confirmar.disparar('click'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, ['B', 'A']);
+    assert.ok(c.raiz.querySelector('[data-recuperacao]'));
+    await c.raiz.querySelector('[data-recuperacao]').children.find(item => item.textContent === 'Guardar meu preenchimento').disparar('click');
+    assert.deepEqual((await c.ler()).respostas.p1, ['A', 'B']);
+    assert.match(c.raiz.querySelector('[data-estado-ordem]').textContent, /guardada/);
+  } finally { c.banco.fechar(); }
+});
+
+test('intervalo limita os campos entre si e recusa inversão, limites e passo durante a edição', async () => {
+  const c = await painelTeste([{ texto: 'Duração', tipo: 'intervalo', min: 0, max: 60, passo: 1 }]);
+  try {
+    const minimo = c.raiz.querySelector('#p1-min'), maximo = c.raiz.querySelector('#p1-max');
+    minimo.value = '11'; await minimo.disparar('input'); await aguardarFila();
+    assert.equal(maximo.attrs.min, '11');
+    maximo.value = '4'; await maximo.disparar('input'); await aguardarFila();
+    assert.equal(maximo.value, ''); assert.deepEqual((await c.ler()).respostas.p1, { min: 11 });
+    assert.match(c.raiz.querySelector('[data-aviso-intervalo]').textContent, /Use no mínimo 11/);
+    maximo.value = '20'; await maximo.disparar('input'); await aguardarFila();
+    assert.equal(minimo.attrs.max, '20');
+    for (const valor of ['21', '-1', '10.5', 'texto', '61']) {
+      minimo.value = valor; await minimo.disparar('input'); await aguardarFila();
+      assert.equal(minimo.value, '11'); assert.deepEqual((await c.ler()).respostas.p1, { min: 11, max: 20 });
+    }
+    maximo.value = ''; await maximo.disparar('input'); await aguardarFila();
+    assert.equal(minimo.attrs.max, '60'); assert.deepEqual((await c.ler()).respostas.p1, { min: 11 });
+    await c.raiz.querySelectorAll('[data-entrega]')[0].disparar('click');
+    assert.match(c.raiz.querySelector('[data-erro]').textContent, /Complete o máximo de “Duração”/);
+  } finally { c.banco.fechar(); }
+});
+
+test('faixa invertida antiga é preservada, informa erro específico e permite correção gradual', async () => {
+  const c = await painelTeste([{ texto: 'Duração', tipo: 'intervalo', min: 0, max: 60 }]);
+  try {
+    await chamarFerramenta('salvar_rascunho', { id: c.id, versao: 1, rascunho: { respostas: { p1: { min: 11, max: 4 } } } }, c.dono, c.banco);
+    await c.reabrir();
+    const minimo = c.raiz.querySelector('#p1-min'), maximo = c.raiz.querySelector('#p1-max');
+    assert.equal(minimo.value, 11); assert.equal(maximo.value, 4);
+    assert.match(c.raiz.querySelector('[data-aviso-intervalo]').textContent, /mínimo \(11\).*máximo \(4\)/);
+    await c.raiz.querySelector('[data-proximo]').disparar('click');
+    assert.match(c.raiz.querySelector('[data-erro]').textContent, /Corrija “Duração”: o mínimo \(11\).*máximo \(4\)/);
+    minimo.value = '10'; await minimo.disparar('input'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, { min: 10, max: 4 });
+    minimo.value = '11'; await minimo.disparar('input'); await aguardarFila(); assert.equal(minimo.value, '10');
+    maximo.value = '10'; await maximo.disparar('input'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, { min: 10, max: 10 });
+    assert.equal(c.raiz.querySelector('[data-aviso-intervalo]').hidden, true);
+    await c.raiz.querySelectorAll('[data-entrega]')[0].disparar('click'); assert.equal(c.entregas.length, 1);
   } finally { c.banco.fechar(); }
 });

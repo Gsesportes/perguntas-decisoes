@@ -23,7 +23,7 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Dados temporários no perfil Windows. Remover somente o registro de entrega confirmada, pelo token correto.
 - Troca solicitada aguarda salvamentos e operações. Erro de salvamento preserva texto na tela e bloqueia troca.
 - Versões protegem concorrência; entregas ambíguas não são reenviadas automaticamente.
-- A resposta de cada mutação contém sua própria versão e preparação, sem adotar uma gravação posterior. Conflitos oferecem escolhas explícitas; preparação ambígua exige conferir a mesma chave de operação. Leituras antigas não reabrem registros já concluídos.
+- A resposta de cada mutação contém sua própria versão e preparação, sem adotar uma gravação posterior. O painel concilia alterações em campos independentes usando a base confirmada e lê a versão atual após recusa de concorrência, com uma única nova tentativa. Alterações diferentes no mesmo campo oferecem escolhas explícitas e preservam os demais campos remotos; regras completas em formatos-avancados.md. Preparação ambígua exige conferir a mesma chave de operação. Leituras antigas não reabrem registros já concluídos.
 - Duas ferramentas visíveis; operações internas e paginação com visibilidade do aplicativo.
 - Pendentes em páginas de cem, por data e identificador, com acesso aos restantes.
 - Limites agregados: definição 400.000 bytes; rascunho 1.000.000; entrada 2.000.000 com margem de envelope. Limites individuais do README subordinados aos totais.
@@ -43,7 +43,8 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 |---|---|
 | Página incompleta | Aviso e permanência |
 | Não ou zero | Resposta válida |
-| Janela concorrente | Recusa sem sobrescrita |
+| Janela concorrente, campos independentes | Conciliar com base confirmada e uma nova tentativa |
+| Janela concorrente, mesmo campo com valores diferentes | Recusa sem sobrescrita e escolha humana |
 | Troca durante salvar | Guardar no registro original e depois abrir o solicitado |
 | Troca durante preparar, entregar ou concluir | Encerrar somente o registro confirmado |
 | Falha no salvamento | Manter texto e exigir confirmação antes de trocar |
@@ -75,6 +76,8 @@ Exigir lint, regressões pertinentes, construção, conferência do comando dist
 Web, celular, nuvem e sistemas operacionais diferentes não estão validados por este contrato.
 
 ## Histórico de mudanças
+
+- 2026-10-14 — Fonte 0.4.6 corrige recuperação de versão antiga por conciliação de campos independentes e preserva escolha humana quando o mesmo campo difere. Transporte conserva o código de conflito; tentativa automática limitada e entrega em preparação protegida. Intervalo restringe nova inversão, preserva rascunho antigo e apresenta erro específico. Lint, 106 testes e protocolo isolado passaram; instalação 0.4.6 confirmada separadamente da conversa que ainda serve 0.4.5. Uso nativo da correção pendente, sem reinício, outro chat ou publicação.
 
 - 2026-10-14 — Fonte local 0.4.5 corrige data_hora para dois campos lado a lado, recusa entradas inválidas durante a edição e guarda partes válidas sem permitir entrega incompleta. Formato 4 protege clientes anteriores; formato 3 é promovido atomicamente ao salvar ou preparar. Confirmar ordem aguarda o salvamento e informa sucesso ou falha reais. URI de interface por versão e origem com versão visível. Lint, 90 testes e protocolo real isolado passaram. Reinstalação somente do plugin concluída; reteste nativo pendente de renovação da conexão na conversa, sem publicação ou reinício do aplicativo.
 

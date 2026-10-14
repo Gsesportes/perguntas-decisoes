@@ -257,3 +257,144 @@ test('Falha de salvamento mantém texto e bloqueia troca antes de confirmação'
     assert.equal(raiz.querySelector('[data-erro]').hidden, false);
   } finally { c.banco.fechar(); }
 });
+
+test('versão antiga é conciliada com campo remoto independente sem perder o foco', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar); painel.carregar(c.A);
+    const campo = entrada(raiz); campo.focus();
+    await c.adaptar.salvar(c.A.structuredContent.id, 1, { observacoes: { p1: 'Observação da outra aba' }, gerais: 'Geral remoto' });
+    campo.value = 'Minha resposta'; await campo.disparar('input'); await aguardarFila();
+    const salvo = await c.adaptar.ler(c.A.structuredContent.id);
+    assert.equal(salvo._meta.versao, 3);
+    assert.equal(salvo._meta.rascunho.respostas.p1, 'Minha resposta');
+    assert.equal(salvo._meta.rascunho.observacoes.p1, 'Observação da outra aba');
+    assert.equal(raiz.querySelector('#pd-obs-p1').value, 'Observação da outra aba');
+    assert.equal(raiz.querySelector('#pd-observacoes-gerais').value, 'Geral remoto');
+    assert.equal(document.activeElement, entrada(raiz));
+    assert.equal(raiz.querySelector('[data-erro]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+
+test('fila de digitação rápida conserva a conciliação anterior e a última edição local', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar); painel.carregar(c.A);
+    await c.adaptar.salvar(c.A.structuredContent.id, 1, { observacoes: { p1: 'Remoto' } });
+    const campo = entrada(raiz);
+    for (const valor of ['M', 'Mi', 'Minha resposta completa']) { campo.value = valor; campo.events.input[0](); }
+    await aguardarFila();
+    const salvo = (await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho;
+    assert.equal(salvo.respostas.p1, 'Minha resposta completa'); assert.equal(salvo.observacoes.p1, 'Remoto');
+    assert.equal(entrada(raiz).value, 'Minha resposta completa');
+    assert.equal(raiz.querySelector('[data-erro]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+
+test('guardar preenchimento em conflito não apaga observação independente da outra aba', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar); painel.carregar(c.A);
+    await c.adaptar.salvar(c.A.structuredContent.id, 1, { respostas: { p1: 'Resposta remota' }, observacoes: { p1: 'Observação remota' } });
+    entrada(raiz).value = 'Resposta local'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.match(raiz.querySelector('[data-erro]').textContent, /alterada de formas diferentes/);
+    await raiz.querySelector('[data-recuperacao]').children.find(item => item.textContent === 'Guardar meu preenchimento').disparar('click');
+    const salvo = (await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho;
+    assert.equal(salvo.respostas.p1, 'Resposta local'); assert.equal(salvo.observacoes.p1, 'Observação remota');
+    assert.equal(raiz.querySelector('#pd-obs-p1').value, 'Observação remota');
+    assert.equal(raiz.querySelector('[data-erro]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+
+test('resposta perdida da gravação pode ser conferida pela leitura sem regravar conteúdo igual', async () => {
+  const c = await contexto(); let perder = true;
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, salvar: async (...args) => {
+      const versao = await c.adaptar.salvar(...args);
+      if (perder) { perder = false; throw new Error('Resposta perdida após gravação'); }
+      return versao;
+    } }); painel.carregar(c.A);
+    entrada(raiz).value = 'Texto salvo'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.equal(raiz.querySelector('[data-erro]').hidden, false);
+    await entrada(raiz).disparar('input'); await aguardarFila();
+    const salvo = await c.adaptar.ler(c.A.structuredContent.id);
+    assert.equal(salvo._meta.versao, 2); assert.equal(salvo._meta.rascunho.respostas.p1, 'Texto salvo');
+    assert.equal(raiz.querySelector('[data-erro]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+
+test('segunda corrida interrompe a tentativa automática e preserva a escolha antes de novos cliques', async () => {
+  const c = await contexto(); let chamadas = 0;
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, salvar: async (...args) => {
+      chamadas += 1;
+      const remoto = await c.adaptar.ler(args[0]);
+      remoto._meta.rascunho.observacoes.p1 = 'Remoto ' + chamadas;
+      await c.adaptar.salvar(args[0], remoto._meta.versao, remoto._meta.rascunho);
+      return c.adaptar.salvar(...args);
+    } }); painel.carregar(c.A);
+    entrada(raiz).value = 'Local'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.equal(chamadas, 2); assert.match(raiz.querySelector('[data-erro]').textContent, /mudou novamente/);
+    entrada(raiz).value = 'Local seguinte'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.equal(chamadas, 2); assert.equal(entrada(raiz).value, 'Local seguinte');
+    assert.equal((await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho.respostas.p1, undefined);
+  } finally { c.banco.fechar(); }
+});
+
+test('conciliação não modifica formulário em entrega por outra aba', async () => {
+  const c = await contexto();
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, c.adaptar); painel.carregar(c.A);
+    await c.adaptar.preparar(c.A.structuredContent.id, 1, { respostas: { p1: 'Em entrega' } });
+    entrada(raiz).value = 'Local preservado'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.match(raiz.querySelector('[data-erro]').textContent, /em entrega em outra aba/);
+    assert.equal(entrada(raiz).value, 'Local preservado');
+    const remoto = await c.adaptar.ler(c.A.structuredContent.id);
+    assert.ok(remoto._meta.preparacao); assert.equal(remoto._meta.rascunho.respostas.p1, 'Em entrega');
+  } finally { c.banco.fechar(); }
+});
+
+test('campo remoto adotado pode ser editado depois, inclusive com digitação enfileirada', async () => {
+  const c = await contexto(); const pausa = promessaControlada(); const iniciou = promessaControlada();
+  let pausar = false;
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, salvar: async (...args) => {
+      if (pausar) { pausar = false; iniciou.resolver(); await pausa.promessa; }
+      return c.adaptar.salvar(...args);
+    } }); painel.carregar(c.A);
+    await c.adaptar.salvar(c.A.structuredContent.id, 1, { observacoes: { p1: 'Remoto' } });
+    entrada(raiz).value = 'Local'; await entrada(raiz).disparar('input'); await aguardarFila();
+    assert.equal(raiz.querySelector('#pd-obs-p1').value, 'Remoto');
+    pausar = true;
+    entrada(raiz).value = 'Local editado'; entrada(raiz).events.input[0](); await iniciou.promessa;
+    const observacao = raiz.querySelector('#pd-obs-p1');
+    for (const texto of ['Remoto com', 'Remoto com minha edição']) { observacao.value = texto; observacao.events.input[0](); }
+    pausa.resolver(); await aguardarFila();
+    const salvo = (await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho;
+    assert.equal(salvo.respostas.p1, 'Local editado'); assert.equal(salvo.observacoes.p1, 'Remoto com minha edição');
+    assert.equal(raiz.querySelector('[data-erro]').hidden, true);
+  } finally { pausa.resolver(); c.banco.fechar(); }
+});
+
+test('conciliação durante ditado adia redesenho e conserva destino, texto e campo remoto', async () => {
+  const c = await contexto(); const processamento = promessaControlada();
+  try {
+    const raiz = criarDomTeste();
+    const painel = montarInterface(raiz, { ...c.adaptar, ditado: async pedido => {
+      if (pedido.acao === 'iniciar') return { sessao: 'ditado-isolado', estado: 'gravando' };
+      if (pedido.acao === 'consultar') return processamento.promessa;
+      return { estado: 'concluido' };
+    } }); painel.carregar(c.A);
+    const campo = entrada(raiz), microfone = raiz.querySelectorAll('[data-ditado]').find(item => item.attrs['aria-label'] === 'Ditar resposta da pergunta 1');
+    const captura = microfone.disparar('click'); await aguardarFila();
+    await c.adaptar.salvar(c.A.structuredContent.id, 1, { observacoes: { p1: 'Remoto durante voz' } });
+    const gerais = raiz.querySelector('#pd-observacoes-gerais'); gerais.value = 'Geral local'; await gerais.disparar('input'); await aguardarFila();
+    assert.equal(entrada(raiz), campo); assert.equal(campo.isConnected, true);
+    processamento.resolver({ estado: 'concluido', texto: 'Texto reconhecido de teste' }); await captura; await aguardarFila();
+    const salvo = (await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho;
+    assert.equal(salvo.respostas.p1, 'Texto reconhecido de teste');
+    assert.equal(salvo.observacoes.p1, 'Remoto durante voz'); assert.equal(salvo.gerais, 'Geral local');
+    assert.equal(entrada(raiz).value, 'Texto reconhecido de teste');
+    assert.equal(raiz.querySelector('#pd-obs-p1').value, 'Remoto durante voz');
+  } finally { processamento.resolver({ estado: 'cancelado' }); c.banco.fechar(); }
+});

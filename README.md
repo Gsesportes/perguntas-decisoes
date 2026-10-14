@@ -10,7 +10,7 @@ Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop 
 
 ## Instalação rápida em outro PC
 
-A fonte local está na versão 0.4.6, com os formatos adicionais e ajustes após teste de uso. O pacote público abaixo continua na versão 0.3.5 e ainda não contém esses formatos nem o ditado local. Construir e instalar a fonte segue as instruções seguintes; isso não comprova recarga de um painel já aberto.
+A fonte local está na versão 0.5.0, com cópia das respostas, painel lateral padrão, chat opcional e os formatos adicionais. O instalador publicado abaixo continua na versão 0.3.5. A cópia local inclui um catálogo pronto atualizado; construir e instalar a fonte não comprova recarga de um painel já aberto.
 
 1. Instale o Codex desktop e [Node.js 24 ou superior](https://nodejs.org/en/download).
 2. Na página do projeto no GitHub, abra **Releases** e baixe **perguntas-decisoes-instalar-0.3.5.zip**.
@@ -30,12 +30,12 @@ Abra um terminal na pasta do projeto:
 ```powershell
 node --version
 npm ci
+npm run sincronizar:catalogo
 npm run verificar
-npm run package:desktop
 npm run verificar:desktop
 ```
 
-O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, duas ferramentas visíveis e retomada. Isso não comprova abertura ou entrega na interface nativa.
+O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, quatro ferramentas visíveis, recursos lateral e no chat e retomada do mesmo formulário. A cópia fica privada da interface. Isso não comprova abertura ou entrega na interface nativa. Ao alterar a fonte, sincronize novamente o catálogo antes de distribuir; uma divergência causa falha visível na conferência.
 
 ## Instalar no Codex
 
@@ -82,6 +82,9 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 ## Preencher e entregar
 
 - Seis perguntas por página. Anterior conserva conteúdo; Próximo exige respostas da página.
+- O painel lateral é a apresentação padrão. Quando solicitado, criar_formulario_no_chat e abrir_no_chat usam a apresentação dentro da conversa. Abrir pelo mesmo ID conserva respostas e observações; não cria outro formulário. Avisos de modo não confirmado permanecem visíveis até o aplicativo confirmar a apresentação.
+- **Copiar respostas** na última página coloca o conjunto completo na área de transferência, sem enviar nem encerrar o formulário. O botão também aparece na tela final, depois de enviar, inserir anotação ou anexar TXT. O texto final fica somente na memória dessa tela e é descartado ao carregar outro formulário; o rascunho continua sendo removido do banco após a entrega. A área de transferência conserva o texto até outra cópia substituí-lo.
+- A cópia usa a permissão do navegador quando disponível. No Windows, uma integração local privada cobre a recusa do navegador e confere o texto escrito. A interface informa essa via; falhas não são apresentadas como sucesso.
 - Sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora; a partir da fonte 0.4.0, também tabela, ordenação, imagens, pontos, intervalo e lista.
 - Data_hora reúne duas colunas, Data e Hora, na mesma pergunta, com uma observação comum. A partir de 0.4.5, valores inválidos são recusados durante a edição e uma parte válida pode ser guardada enquanto a outra está pendente. A entrega exige as duas. Não há conversão para UTC ou adição de fuso.
 - Ordenação aguarda a confirmação do salvamento antes de mostrar sucesso e conserva a indicação ao reabrir. Pontos mostram o saldo e atualizam o máximo por critério; uma digitação acima do saldo é recusada imediatamente, com aviso e manutenção do último valor aceito.

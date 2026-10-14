@@ -19,16 +19,18 @@ Reunir perguntas e classificações em uma interface local, preservando resposta
 - Rascunhos legados conservam seu escopo; recursos novos usam escopo interno separado no mesmo banco. O servidor novo consulta ambos. Conexões antigas não devem interpretar os formatos novos; nenhuma migração destrutiva ou perda de respostas é permitida.
 - Alternativas visíveis em um clique e observações individuais e gerais opcionais.
 - Três entregas somente na última página, conforme capacidades: mensagem, anotação no contexto do compositor ou recurso incorporado TXT.
+- Copiar respostas é uma ação independente na última página e na tela final. Escreve o conjunto completo na área de transferência, sem enviar nem encerrar. Após entrega, conserva apenas texto em memória enquanto a tela estiver aberta; o banco continua sendo limpo pela confirmação. Contrato completo em copia-e-apresentacoes.md.
 - Não selecionar outra conversa para criar, abrir ou verificar um formulário.
 - Dados temporários no perfil Windows. Remover somente o registro de entrega confirmada, pelo token correto.
 - Troca solicitada aguarda salvamentos e operações. Erro de salvamento preserva texto na tela e bloqueia troca.
 - Versões protegem concorrência; entregas ambíguas não são reenviadas automaticamente.
 - A resposta de cada mutação contém sua própria versão e preparação, sem adotar uma gravação posterior. O painel concilia alterações em campos independentes usando a base confirmada e lê a versão atual após recusa de concorrência, com uma única nova tentativa. Alterações diferentes no mesmo campo oferecem escolhas explícitas e preservam os demais campos remotos; regras completas em formatos-avancados.md. Preparação ambígua exige conferir a mesma chave de operação. Leituras antigas não reabrem registros já concluídos.
-- Duas ferramentas visíveis; operações internas e paginação com visibilidade do aplicativo.
+- Quatro ferramentas visíveis desde 0.5.0: criar e abrir no painel lateral por padrão, criar e abrir no chat quando solicitado. Mesmos registros e formatos; operações internas, cópia e paginação com visibilidade do aplicativo. Até 0.4.6, existiam duas ferramentas visíveis.
 - Pendentes em páginas de cem, por data e identificador, com acesso aos restantes.
 - Limites agregados: definição 400.000 bytes; rascunho 1.000.000; entrada 2.000.000 com margem de envelope. Limites individuais do README subordinados aos totais.
 - Reserva de transporte 8.000.000 bytes para recusa controlada; não truncar texto.
 - Pacote resolve Node no destino e diagnóstico inicia o comando do manifesto.
+- Catálogo pronto pode ser sincronizado explicitamente pelo comando sincronizar:catalogo. A conferência compara fonte construída e catálogo distribuído, incluindo binários; divergência não é corrigida silenciosamente. Em uma cópia de desenvolvimento nova, executar essa sincronização depois de instalar dependências, antes de testar ou distribuir.
 - O MCP portátil resolve o servidor por `${PLUGIN_ROOT}/server/servidor.mjs` e usa `${PLUGIN_DATA}` como diretório de trabalho persistente. A forma `.` é recusada pelo carregador Agent Plugins do Codex. O aceite exige que o próprio Codex reconheça e inicie o servidor; as variáveis são resolvidas pelo anfitrião.
 - Na abertura manual sem resultado inicial utilizável, consultar os pendentes pela operação privada após conectar. Um resultado de formulário recebido durante a consulta prevalece sobre a lista tardia. Falha ou ausência de conteúdo devolvido deve produzir erro visível, sem permanecer em uma tela vazia.
 - Instalação distribuída por GitHub com catálogo pronto e Instalar.cmd. Requer Windows, Node 24 e Codex desktop; o instalador verifica os requisitos antes de copiar arquivos, preserva registros existentes e não reinicia o aplicativo.
@@ -76,6 +78,8 @@ Exigir lint, regressões pertinentes, construção, conferência do comando dist
 Web, celular, nuvem e sistemas operacionais diferentes não estão validados por este contrato.
 
 ## Histórico de mudanças
+
+- 2026-10-14 — Fonte 0.5.0 acrescenta cópia das respostas na última página e na tela final, com escrita real no Windows confirmada por releitura, mantendo texto final somente na memória da tela e limpeza do banco após entrega. Integradas à fonte atual as melhorias do PR #1: lateral padrão, chat opcional, formulário compacto e conferência de catálogo. Quatro ferramentas visíveis, duas apresentações e cópia privada. Lint, 134 testes e protocolo passaram; instalação 0.5.0 confirmada independentemente da conversa ainda conectada em 0.4.6. Reteste do painel pendente, sem reinício nem publicação remota. Contrato completo em copia-e-apresentacoes.md.
 
 - 2026-10-14 — Fonte 0.4.6 corrige recuperação de versão antiga por conciliação de campos independentes e preserva escolha humana quando o mesmo campo difere. Transporte conserva o código de conflito; tentativa automática limitada e entrega em preparação protegida. Intervalo restringe nova inversão, preserva rascunho antigo e apresenta erro específico. Lint, 106 testes e protocolo isolado passaram; instalação 0.4.6 confirmada separadamente da conversa que ainda serve 0.4.5. Uso nativo da correção pendente, sem reinício, outro chat ou publicação.
 

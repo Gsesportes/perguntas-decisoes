@@ -18,7 +18,10 @@ export const ARQUIVOS_PUBLICOS = [
   'src/erros.mjs', 'src/formatos.mjs', 'src/controles-formatos.mjs', 'src/imagens-desktop.mjs',
   'docs/specs/formatos-avancados.md', 'testes/formatos.test.mjs', 'testes/imagens.test.mjs',
   'src/icones-estrelas.mjs', 'docs/licencas/heroicons-LICENSE.md', 'src/versao.mjs',
-  'src/conciliacao.mjs', 'testes/conciliacao.test.mjs'
+  'src/conciliacao.mjs', 'testes/conciliacao.test.mjs',
+  'src/copia.mjs', 'src/copia-desktop.mjs', 'src/exibicao.mjs',
+  'testes/copia.test.mjs', 'testes/exibicao.test.mjs', 'testes/aplicativo.test.mjs',
+  'docs/specs/copia-e-apresentacoes.md'
 ];
 
 export const ARQUIVOS_GERADOS = [

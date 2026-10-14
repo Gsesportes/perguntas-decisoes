@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, copyFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { avisosTerceiros } from './avisos-terceiros.mjs';
+import { ARQUIVOS_CATALOGO } from './instalar-desktop.mjs';
 
 const raiz = new URL('../', import.meta.url);
 const pacote = new URL('pacote/plugins/perguntas-decisoes/', raiz);
@@ -36,4 +37,12 @@ for (const [arquivo, dados] of [['plugin.json', manifesto], ['mcp.json', mcp], [
 await writeFile(new URL('pacote/.agents/plugins/marketplace.json', raiz), JSON.stringify(catalogo, null, 2) + '\n');
 const arquivos = ['plugin.json', 'mcp.json', '.mcp.json', '.codex-plugin/plugin.json', 'server/servidor.mjs', 'dist/web/painel.html', 'migracoes/0001_rascunhos.sql', 'skills/usar-painel-preservando-chat/SKILL.md', 'assets/logo-verde.png', 'assets/icone-128.png'];
 for (const arquivo of arquivos) if (!(await readFile(new URL(arquivo, pacote))).length) throw new Error(`Arquivo vazio no pacote: ${arquivo}`);
+if (process.argv.includes('--sincronizar-catalogo')) {
+  for (const arquivo of ARQUIVOS_CATALOGO) {
+    const destino = new URL(arquivo, raiz);
+    await mkdir(new URL('.', destino), { recursive: true });
+    await copyFile(new URL('pacote/' + arquivo, raiz), destino);
+  }
+  console.log('Catálogo pronto sincronizado explicitamente com o pacote construído.');
+}
 console.log(`Pacote desktop construído em ${fileURLToPath(pacote)}.`);

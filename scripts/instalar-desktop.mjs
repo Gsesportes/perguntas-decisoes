@@ -44,6 +44,16 @@ export function escolherCatalogoDesktop(raiz) {
   }
   return catalogo;
 }
+export function conferirCatalogoConstruido(distribuido, construido) {
+  if (validarCatalogo(distribuido).versao !== validarCatalogo(construido).versao) throw new Error('Catálogo desatualizado. Execute npm run sincronizar:catalogo antes de publicar.');
+  for (const arquivo of ARQUIVOS_CATALOGO) {
+    const a = readFileSync(join(distribuido, arquivo)), b = readFileSync(join(construido, arquivo));
+    const texto = /\.(json|mjs|html|sql|md|txt)$|(^|\/)LICENSE$/.test(arquivo);
+    const iguais = texto ? a.toString('utf8').replace(/\r\n/g, '\n') === b.toString('utf8').replace(/\r\n/g, '\n') : a.equals(b);
+    if (!iguais) throw new Error('Catálogo desatualizado: ' + arquivo + '. Execute npm run sincronizar:catalogo antes de publicar.');
+  }
+  return { arquivos: ARQUIVOS_CATALOGO.length, coerente: true };
+}
 export function prepararComponentesDesktop({ origem, diretorio }) {
   const catalogo = validarCatalogo(origem);
   const base = resolve(diretorio);

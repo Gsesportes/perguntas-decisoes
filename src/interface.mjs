@@ -41,6 +41,7 @@ export function montarInterface(raiz, adaptador) {
   let ocupado = false;
   let ditando = false;
   let entregue = false;
+  let textoCopiaFinal = null;
   let entregaPreparada = null;
   let filaSalvamento = Promise.resolve();
   let erroSalvamento = null;
@@ -75,6 +76,10 @@ export function montarInterface(raiz, adaptador) {
     if (!aviso) { aviso = elemento('p', { 'data-erro-pendentes': '', role: 'alert' }); lista.append(aviso); }
     aviso.textContent = mensagem;
     aviso.hidden = !mensagem || lista.hidden;
+  }
+  function mostrarAvisoApresentacao(mensagem) {
+    const aviso = obter('[data-aviso-apresentacao]');
+    aviso.textContent = mensagem; aviso.hidden = !mensagem;
   }
   function aplicarCarregamentoPendente() {
     if (!carregamentoPendente || ocupado || ditando || salvamentosPendentes || erroSalvamento || preparacaoPendente || (entregaPreparada && !entregue)) return;
@@ -129,6 +134,11 @@ export function montarInterface(raiz, adaptador) {
     obter('[data-conexao]').textContent = adaptador.conexao;
     obter('[data-retomar]').hidden = (!entregaPreparada && !preparacaoPendente) || entregue;
     obter('[data-retomar]').disabled = ocupado || ditando;
+    raiz.querySelectorAll('[data-copiar]').forEach(botao => {
+      const final = botao.dataset.copiar === 'final';
+      if (final) botao.hidden = !textoCopiaFinal;
+      botao.disabled = !adaptador.copiar || ocupado || ditando || (final ? !textoCopiaFinal : entregue || preparacaoPendente || Boolean(entregaPreparada));
+    });
     const aviso = obter('[data-erro]');
     if (erroSalvamento && !salvamentosPendentes && !ocupado && !ditando && !entregue && !entregaPreparada && !preparacaoPendente && !aviso.querySelector('[data-recuperacao]')) {
       const opcoes = elemento('span', { 'data-recuperacao': '' });
@@ -347,6 +357,20 @@ export function montarInterface(raiz, adaptador) {
     } catch (erro) { mostrarErro(erro.message); return false; }
   }
   obter('[data-formulario]').addEventListener('submit', evento => evento.preventDefault());
+  raiz.querySelectorAll('[data-copiar]').forEach(botao => botao.addEventListener('click', async () => {
+    if (botao.disabled || ocupado || ditando || !adaptador.copiar) return;
+    const final = botao.dataset.copiar === 'final';
+    if (!final && (!paginaValida() || entregue || entregaPreparada || preparacaoPendente)) return;
+    const aviso = obter('[data-estado-copia]');
+    try {
+      bloquear(true);
+      if (!final) { await filaSalvamento; if (erroSalvamento) throw erroSalvamento; }
+      const texto = final ? textoCopiaFinal : montarEntrega(atual.formulario, atual.rascunho).texto;
+      aviso.textContent = 'Copiando respostas…'; aviso.setAttribute('role', 'status'); aviso.hidden = false;
+      aviso.textContent = await adaptador.copiar(texto);
+    } catch (erro) { aviso.textContent = 'Não consegui copiar. ' + erro.message; aviso.setAttribute('role', 'alert'); aviso.hidden = false; }
+    finally { bloquear(false); aplicarCarregamentoPendente(); }
+  }));
   obter('[data-proximo]').addEventListener('click', () => {
     if (ocupado || ditando || entregue || preparacaoPendente || entregaPreparada) return;
     if (!paginaValida()) return;
@@ -380,6 +404,8 @@ export function montarInterface(raiz, adaptador) {
       const entregaDaOperacao = entregaPreparada;
       const mensagem = await adaptador.entregar(botao.dataset.entrega, entregaDaOperacao);
       entregue = true;
+      textoCopiaFinal = entregaDaOperacao.texto;
+      atualizarNavegacao();
       recebidos.set(origem.id, entregaDaOperacao.token);
       obter('[data-sucesso]').textContent = mensagem;
       obter('[data-sucesso]').hidden = false;
@@ -500,6 +526,9 @@ export function montarInterface(raiz, adaptador) {
       return;
     }
     mostrarErro('');
+    textoCopiaFinal = null;
+    obter('[data-estado-copia]').textContent = ''; obter('[data-estado-copia]').hidden = true;
+    raiz.querySelector('[data-copiar="final"]').hidden = true;
     const meta = resultado._meta ?? {};
     if (meta.pendentes) {
       obter('[data-formulario]').hidden = true;
@@ -533,5 +562,5 @@ export function montarInterface(raiz, adaptador) {
       raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = true; });
     }
   }
-  return { carregar, atualizarNavegacao, mostrarErro };
+  return { carregar, atualizarNavegacao, mostrarErro, mostrarAvisoApresentacao };
 }

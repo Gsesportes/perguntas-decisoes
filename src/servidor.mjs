@@ -2,14 +2,15 @@ import { normalizarFormulario, rascunhoVazio, validarRascunho, montarEntrega, mi
 import { VERSAO_PLUGIN } from './versao.mjs';
 import { Repositorio } from './repositorio.mjs';
 import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/cfworker';
+import { RECURSOS_INTERFACE, lerRecursoInterface, URI_INTERFACE, URI_INTERFACE_LEGADA, URI_INTERFACE_CHAT } from './exibicao.mjs';
 
-export const URI_INTERFACE = `ui://perguntas-decisoes/${VERSAO_PLUGIN}/painel`;
-export const URI_INTERFACE_LEGADA = 'ui://perguntas-decisoes/painel';
+export { URI_INTERFACE, URI_INTERFACE_LEGADA, URI_INTERFACE_CHAT };
 const esquemaPergunta = { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, imagem: { type: 'string' } }, required: ['texto', 'imagem'], additionalProperties: false }] } }, min: { type: 'number' }, max: { type: 'number' }, passo: { type: 'number' }, itens: { type: 'array', items: { type: 'string' } }, total: { type: 'integer' }, unidade: { type: 'string' }, min_itens: { type: 'integer' }, max_itens: { type: 'integer' }, visual: { enum: ['botoes', 'estrelas', 'emojis', 'barra'] }, se: { type: 'object', properties: { pergunta: { type: 'string' }, igual: { type: ['string', 'number'] } }, required: ['pergunta', 'igual'], additionalProperties: false } }, required: ['texto'], additionalProperties: false }] };
 const objeto = properties => ({ type: 'object', properties, additionalProperties: false });
 const leitura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const alteracao = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 const ui = { ui: { resourceUri: URI_INTERFACE } };
+const uiChat = { ui: { resourceUri: URI_INTERFACE_CHAT } };
 const privada = { ui: { visibility: ['app'] } };
 
 export const FERRAMENTAS = [
@@ -23,6 +24,11 @@ export const FERRAMENTAS = [
   { name: 'retomar_edicao', inputSchema: { ...objeto({ id: { type: 'string' }, token: { type: 'string' } }), required: ['id', 'token'] }, annotations: alteracao, _meta: privada }
 ];
 
+// Os dois comandos opcionais compartilham todos os formatos atuais.
+FERRAMENTAS.splice(2, 0,
+  { ...FERRAMENTAS[0], name: 'criar_formulario_no_chat', title: 'Responder no chat', description: 'Cria dentro da conversa somente quando solicitado; mesmos formatos, observações e paginação do painel.', _meta: uiChat },
+  { ...FERRAMENTAS[1], name: 'abrir_no_chat', title: 'Abrir no chat', description: 'Abre no chat quando solicitado; id retoma, sem id lista pendentes. Preserve a conversa principal.', _meta: uiChat }
+);
 const esquemasEntrada = new CfWorkerJsonSchemaValidator();
 const validadoresEntrada = new Map(FERRAMENTAS.map(ferramenta => [ferramenta.name, esquemasEntrada.getValidator(ferramenta.inputSchema)]));
 const mensagensObrigatorias = {
@@ -53,6 +59,8 @@ function paraInterface(registro) {
 
 export async function chamarFerramenta(nome, entrada, dono, banco) {
   validarEntradaFerramenta(nome, entrada);
+  if (nome === 'criar_formulario_no_chat') nome = 'criar_formulario';
+  if (nome === 'abrir_no_chat') nome = 'abrir_painel';
   const repositorio = new Repositorio(banco);
   if (nome === 'criar_formulario') return paraInterface(await repositorio.criar(dono, normalizarFormulario(entrada), rascunhoVazio()));
   if (nome === 'abrir_painel') {
@@ -106,9 +114,12 @@ export async function atenderMcp(request, env, interfaceHtml) {
   }
   if (chamada.method === 'ping') return responder({});
   if (chamada.method === 'tools/list') return responder({ tools: FERRAMENTAS });
-  if (chamada.method === 'resources/list') return responder({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] });
+  if (chamada.method === 'resources/list') return responder({ resources: RECURSOS_INTERFACE });
   if (chamada.method === 'resources/templates/list') return responder({ resourceTemplates: [] });
-  if (chamada.method === 'resources/read' && [URI_INTERFACE, URI_INTERFACE_LEGADA].includes(chamada.params?.uri)) return responder({ contents: [{ uri: chamada.params.uri, mimeType: 'text/html;profile=mcp-app', text: interfaceHtml, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] });
+  if (chamada.method === 'resources/read') {
+    try { return responder({ contents: [lerRecursoInterface(interfaceHtml, chamada.params?.uri)] }); }
+    catch (erro) { return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32602, message: erro.message } }); }
+  }
   if (chamada.method !== 'tools/call') return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32601, message: 'Método não encontrado.' } });
   const dono = request.headers.get('oai-authenticated-user-id');
   if (!dono) return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32001, message: 'Entre na sua conta para acessar formulários.' } }, 401);

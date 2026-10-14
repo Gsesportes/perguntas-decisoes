@@ -4,8 +4,13 @@ import { montarInterface, coordenarCargaInicial } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 import { VERSAO_PLUGIN } from './versao.mjs';
+import { EXIBICAO_FORMULARIO, ajustarApresentacao } from './exibicao.mjs';
+import { copiarTexto } from './copia.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: VERSAO_PLUGIN });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: VERSAO_PLUGIN }, { availableDisplayModes: EXIBICAO_FORMULARIO.availableDisplayModes });
+const apresentacao = document.getElementById('perguntas-decisoes-app').dataset.apresentacao ?? 'lateral';
+const modoEsperado = apresentacao === 'chat' ? 'inline' : 'fullscreen';
+const avisoApresentacao = `O aplicativo não confirmou a abertura ${apresentacao === 'chat' ? 'dentro da conversa' : 'na barra lateral'}.`;
 document.getElementById('perguntas-decisoes-app').setAttribute('data-versao', VERSAO_PLUGIN);
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
@@ -32,10 +37,16 @@ const adaptador = {
   ditado: async entrada => (await chamar('controlar_ditado', entrada))._meta,
   lerImagem: async (id, pergunta, opcao) => (await chamar('ler_imagem', { id, pergunta, opcao }))._meta.imagem
 };
+adaptador.copiar = texto => copiarTexto(texto, { copiarLocal: async conteudo => (await chamar('copiar_respostas', { texto: conteudo }))._meta });
 const interfaceUsuario = montarInterface(document.getElementById('perguntas-decisoes-app'), adaptador);
 const cargaInicial = coordenarCargaInicial({ carregar: interfaceUsuario.carregar, listar: () => adaptador.listar(), mostrarErro: interfaceUsuario.mostrarErro });
+function atualizarApresentacao(modo) {
+  document.documentElement.dataset.modoExibicao = modo ?? 'desconhecido';
+  interfaceUsuario.mostrarAvisoApresentacao(modo === modoEsperado ? '' : avisoApresentacao);
+}
 function aplicarTema() {
   const contexto = aplicativo.getHostContext();
+  atualizarApresentacao(contexto?.displayMode);
   if (contexto?.theme) applyDocumentTheme(contexto.theme);
   if (contexto?.styles?.variables) applyHostStyleVariables(contexto.styles.variables);
   interfaceUsuario.atualizarNavegacao();
@@ -46,14 +57,17 @@ if (window.parent === window) {
   adaptador.conexao = 'Abra este painel pelo plugin conectado ao Codex ou ao ChatGPT. Não há conexão com uma conversa nesta página isolada.';
   interfaceUsuario.mostrarErro(adaptador.conexao);
 } else {
+  let conectado = false;
   try {
     await aplicativo.connect();
+    conectado = true;
     aplicarTema();
-    const contexto = aplicativo.getHostContext();
-    if (contexto?.displayMode === 'inline' && contexto.availableDisplayModes?.includes('fullscreen')) await aplicativo.requestDisplayMode({ mode: 'fullscreen' });
-    await cargaInicial.iniciar();
+    atualizarApresentacao(await ajustarApresentacao(aplicativo, apresentacao));
   } catch (erro) {
-    adaptador.conexao = 'Conexão com o aplicativo não confirmada. Nenhuma entrega foi realizada.';
-    interfaceUsuario.mostrarErro(`${adaptador.conexao} ${erro.message}`);
+    if (!conectado) {
+      adaptador.conexao = 'Conexão com o aplicativo não confirmada. Nenhuma entrega foi realizada.';
+      interfaceUsuario.mostrarErro(`${adaptador.conexao} ${erro.message}`);
+    } else interfaceUsuario.mostrarAvisoApresentacao(`${avisoApresentacao} ${erro.message}`);
   }
+  if (conectado) await cargaInicial.iniciar();
 }

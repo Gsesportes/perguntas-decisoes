@@ -398,3 +398,44 @@ test('conciliação durante ditado adia redesenho e conserva destino, texto e ca
     assert.equal(raiz.querySelector('#pd-obs-p1').value, 'Remoto durante voz');
   } finally { processamento.resolver({ estado: 'cancelado' }); c.banco.fechar(); }
 });
+
+test('copiar antes de enviar inclui observações e conserva rascunho editável, sem preparar entrega', async () => {
+  const c = await contexto(); const copiados = [];
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, copiar: async texto => { copiados.push(texto); return 'Copiado'; }, preparar: () => assert.fail('Copiar não prepara entrega.') });
+    painel.carregar(c.A);
+    entrada(raiz).value = 'Minha resposta'; await entrada(raiz).disparar('input');
+    const obs = raiz.querySelector('#pd-obs-p1'); obs.value = 'Observação individual'; await obs.disparar('input');
+    const gerais = raiz.querySelector('#pd-observacoes-gerais'); gerais.value = 'Observação geral'; await gerais.disparar('input');
+    await raiz.querySelector('[data-copiar="formulario"]').disparar('click');
+    assert.equal(copiados.length, 1); assert.match(copiados[0], /Minha resposta/); assert.match(copiados[0], /Observação individual/); assert.match(copiados[0], /Observação geral/);
+    const salvo = await c.adaptar.ler(c.A.structuredContent.id);
+    assert.equal(salvo._meta.preparacao, null); assert.equal(entrada(raiz).disabled, false);
+    assert.equal(raiz.querySelector('[data-estado-copia]').textContent, 'Copiado');
+    assert.equal(raiz.querySelector('[data-copiar="final"]').hidden, true);
+  } finally { c.banco.fechar(); }
+});
+for (const modo of ['chat', 'anotacao', 'arquivo']) test('copiar na tela final de ' + modo + ' conserva texto entregue após limpar o banco', async () => {
+  const c = await contexto(); const copiados = [], envios = [];
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, copiar: async texto => { copiados.push(texto); return 'Copiado'; }, entregar: async (tipo, entrega) => { envios.push([tipo, entrega.texto]); return 'Entregue'; } });
+    painel.carregar(c.A); entrada(raiz).value = 'Conjunto entregue'; await entrada(raiz).disparar('input'); await aguardarFila();
+    await raiz.querySelector('[data-entrega="' + modo + '"]').disparar('click');
+    await assert.rejects(c.adaptar.ler(c.A.structuredContent.id), /não encontrado/);
+    const copiar = raiz.querySelector('[data-copiar="final"]'); assert.equal(copiar.hidden, false); assert.equal(copiar.disabled, false);
+    assert.equal(raiz.querySelector('[data-formulario]').hidden, true);
+    await copiar.disparar('click'); assert.deepEqual(copiados, [envios[0][1]]); assert.equal(envios.length, 1);
+    painel.carregar(c.B); assert.equal(copiar.hidden, true); await copiar.disparar('click'); assert.equal(copiados.length, 1);
+  } finally { c.banco.fechar(); }
+});
+test('falha de cópia permite retentar e resposta ausente não é copiada', async () => {
+  const c = await contexto(); let chamadas = 0;
+  try {
+    const raiz = criarDomTeste(); const painel = montarInterface(raiz, { ...c.adaptar, copiar: async () => { chamadas += 1; if (chamadas === 1) throw new Error('Permissão recusada'); return 'Copiado'; } }); painel.carregar(c.A);
+    const copiar = raiz.querySelector('[data-copiar="formulario"]'); await copiar.disparar('click'); assert.equal(chamadas, 0);
+    entrada(raiz).value = 'Minha resposta'; await entrada(raiz).disparar('input'); await aguardarFila();
+    await copiar.disparar('click'); assert.match(raiz.querySelector('[data-estado-copia]').textContent, /Não consegui copiar/); assert.equal(copiar.disabled, false);
+    await copiar.disparar('click'); assert.equal(chamadas, 2); assert.equal(raiz.querySelector('[data-estado-copia]').textContent, 'Copiado');
+    assert.equal((await c.adaptar.ler(c.A.structuredContent.id))._meta.rascunho.respostas.p1, 'Minha resposta');
+  } finally { c.banco.fechar(); }
+});

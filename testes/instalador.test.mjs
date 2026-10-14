@@ -4,7 +4,30 @@ import { mkdtemp, mkdir, copyFile, readFile, writeFile, rm } from 'node:fs/promi
 import { join, dirname, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { validarCatalogo, prepararComponentesDesktop, escolherCatalogoDesktop, ARQUIVOS_CATALOGO } from '../scripts/instalar-desktop.mjs';
+import { validarCatalogo, prepararComponentesDesktop, escolherCatalogoDesktop, conferirCatalogoConstruido, ARQUIVOS_CATALOGO } from '../scripts/instalar-desktop.mjs';
+
+test('catálogo pronto corresponde ao pacote reconstruído, sem sincronizar durante conferência', () => {
+  const raiz = fileURLToPath(new URL('../', import.meta.url));
+  assert.equal(conferirCatalogoConstruido(raiz, join(raiz, 'pacote')).coerente, true);
+});
+
+test('conferência recusa servidor ou binário desatualizado e aceita somente diferença de fim de linha', async () => {
+  const pasta = await mkdtemp(join(tmpdir(), 'catalogo conferido '));
+  const pacote = fileURLToPath(new URL('../pacote/', import.meta.url));
+  try {
+    for (const arquivo of ARQUIVOS_CATALOGO) { const destino = join(pasta, arquivo); await mkdir(dirname(destino), { recursive: true }); await copyFile(join(pacote, arquivo), destino); }
+    const servidor = join(pasta, 'plugins/perguntas-decisoes/server/servidor.mjs');
+    const original = await readFile(servidor, 'utf8');
+    await writeFile(servidor, original.replace(/\r?\n/g, '\r\n'));
+    assert.equal(conferirCatalogoConstruido(pasta, pacote).coerente, true);
+    await writeFile(servidor, original + '\n// Alteração fictícia não sincronizada.');
+    assert.throws(() => conferirCatalogoConstruido(pasta, pacote), /Catálogo desatualizado.*servidor/);
+    await writeFile(servidor, original);
+    const binario = join(pasta, 'plugins/perguntas-decisoes/native/CapturaMicrofone.exe');
+    const bytes = await readFile(binario); bytes[bytes.length - 1] ^= 1; await writeFile(binario, bytes);
+    assert.throws(() => conferirCatalogoConstruido(pasta, pacote), /Catálogo desatualizado.*CapturaMicrofone/);
+  } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + sep)); await rm(pasta, { recursive: true, force: true }); }
+});
 
 test('Instalador confere catálogo completo e recusa identidade ou comando inesperados', async () => {
   const pasta = await mkdtemp(join(tmpdir(), 'catalogo instalador '));

@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListResourceTemplatesRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { FERRAMENTAS, URI_INTERFACE, URI_INTERFACE_LEGADA, chamarFerramenta } from './servidor.mjs';
+import { FERRAMENTAS, chamarFerramenta } from './servidor.mjs';
+import { RECURSOS_INTERFACE, lerRecursoInterface } from './exibicao.mjs';
+import { FERRAMENTA_COPIA, copiarNoWindows } from './copia-desktop.mjs';
 import { ErroFormulario } from './formulario.mjs';
 import { abrirArmazenamentoDesktop } from './armazenamento-desktop.mjs';
 import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
@@ -16,20 +18,20 @@ const versaoPlugin = VERSAO_PLUGIN;
 const componentes = join(process.env.LOCALAPPDATA, 'PerguntasDecisoes', 'componentes', versaoPlugin);
 const capturador = join(componentes, 'native/CapturaMicrofone.exe');
 const ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono, executavel: capturador });
-const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO, FERRAMENTA_IMAGEM];
+const ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO, FERRAMENTA_IMAGEM, FERRAMENTA_COPIA];
 const html = readFileSync(new URL('../dist/web/painel.html', import.meta.url), 'utf8');
 const imagemIcone = readFileSync(new URL('../assets/icone-128.png', import.meta.url));
 const icones = [{ src: `data:image/png;base64,${imagemIcone.toString('base64')}`, mimeType: 'image/png', sizes: ['128x128'] }];
 const servidor = new Server({ name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: versaoPlugin, icons: icones }, { capabilities: { tools: {}, resources: {} } });
 servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: ferramentas }));
-servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] }));
+servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: RECURSOS_INTERFACE }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));
 servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
-  if (![URI_INTERFACE, URI_INTERFACE_LEGADA].includes(params.uri)) throw new Error('Recurso de interface não encontrado.');
-  return { contents: [{ uri: params.uri, mimeType: 'text/html;profile=mcp-app', text: html, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] };
+  return { contents: [lerRecursoInterface(html, params.uri)] };
 });
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   try {
+    if (params.name === FERRAMENTA_COPIA.name) return { content: [], _meta: await copiarNoWindows(params.arguments) };
     if (params.name === 'controlar_ditado') return { content: [], _meta: await ditado.controlar(params.arguments ?? {}) };
     if (params.name === 'ler_imagem') return await lerImagemFormulario({ banco: armazenamento.DB, dono: armazenamento.dono, entrada: params.arguments ?? {}, diretorioAssets: join(componentes, 'assets') });
     return await chamarFerramenta(params.name, params.arguments ?? {}, armazenamento.dono, armazenamento.DB);

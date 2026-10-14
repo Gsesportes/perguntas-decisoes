@@ -5,9 +5,9 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "server/servidor.mjs"
+        "${PLUGIN_ROOT}/server/servidor.mjs"
       ],
-      "cwd": "."
+      "cwd": "${PLUGIN_DATA}"
     }
   }
 }

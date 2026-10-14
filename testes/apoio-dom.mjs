@@ -39,12 +39,13 @@ export function criarDomTeste() {
   const raiz = new ElementoTeste(); const formulario = new ElementoTeste('form'); formulario.setAttribute('data-formulario', ''); raiz.append(formulario);
   document.raiz = raiz;
   document.getElementById = id => raiz.querySelector('#' + id);
-  for (const nome of ['origem', 'erro', 'progresso', 'pagina', 'barra', 'anterior', 'proximo', 'entregas', 'gerais', 'conexao', 'retomar', 'estado', 'titulo', 'pendentes', 'sucesso', 'limpar', 'perguntas']) {
+  for (const nome of ['origem', 'erro', 'progresso', 'pagina', 'barra', 'anterior', 'proximo', 'entregas', 'gerais', 'conexao', 'retomar', 'estado', 'titulo', 'pendentes', 'sucesso', 'limpar', 'perguntas', 'aviso-apresentacao', 'estado-copia']) {
     const item = new ElementoTeste(['anterior', 'proximo', 'retomar', 'limpar'].includes(nome) ? 'button' : 'div'); item.setAttribute('data-' + nome, '');
-    (['origem', 'titulo', 'pendentes', 'sucesso'].includes(nome) ? raiz : formulario).append(item);
+    (['origem', 'titulo', 'pendentes', 'sucesso', 'aviso-apresentacao', 'estado-copia'].includes(nome) ? raiz : formulario).append(item);
   }
   const gerais = new ElementoTeste('textarea'); gerais.setAttribute('id', 'pd-observacoes-gerais'); formulario.append(gerais);
   for (const modo of ['chat', 'anotacao', 'arquivo']) { const botao = new ElementoTeste('button'); botao.setAttribute('data-entrega', modo); formulario.append(botao); }
+  for (const modo of ['formulario', 'final']) { const botao = new ElementoTeste('button'); botao.setAttribute('data-copiar', modo); botao.hidden = modo === 'final'; (modo === 'final' ? raiz : formulario).append(botao); }
   return raiz;
 }
 export const aguardarFila = async () => { for (let i = 0; i < 4; i += 1) await new Promise(resolve => setTimeout(resolve, 0)); };

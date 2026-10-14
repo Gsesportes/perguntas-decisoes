@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListResourceTemplatesRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { FERRAMENTAS, URI_INTERFACE, chamarFerramenta } from './servidor.mjs';
+import { FERRAMENTAS, URI_INTERFACE, URI_INTERFACE_LEGADA, chamarFerramenta } from './servidor.mjs';
 import { ErroFormulario } from './formulario.mjs';
 import { abrirArmazenamentoDesktop } from './armazenamento-desktop.mjs';
 import { LIMITE_BUFFER_TRANSPORTE } from './limites.mjs';
@@ -25,7 +25,7 @@ servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: ferrame
 servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));
 servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
-  if (params.uri !== URI_INTERFACE) throw new Error('Recurso de interface não encontrado.');
+  if (![URI_INTERFACE, URI_INTERFACE_LEGADA].includes(params.uri)) throw new Error('Recurso de interface não encontrado.');
   return { contents: [{ uri: params.uri, mimeType: 'text/html;profile=mcp-app', text: html, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] };
 });
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {

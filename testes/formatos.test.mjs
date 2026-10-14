@@ -99,7 +99,7 @@ test('dados avançados ficam fora do escopo legado, com acesso normal pelo servi
   } finally { banco.fechar(); }
 });
 
-async function painelTeste(perguntas) {
+async function painelTeste(perguntas, substituicoes = {}) {
   const banco = bancoLocal(), dono = 'perfil-interface-formatos';
   const criado = await chamarFerramenta('criar_formulario', { perguntas }, dono, banco);
   const raiz = criarDomTeste(), entregas = [];
@@ -108,11 +108,12 @@ async function painelTeste(perguntas) {
     salvar: async (id, versao, rascunho) => (await chamarFerramenta('salvar_rascunho', { id, versao, rascunho }, dono, banco))._meta.versao,
     preparar: async (id, versao, rascunho) => { const r = await chamarFerramenta('preparar_entrega', { id, versao, rascunho }, dono, banco); return { ...r._meta.entrega, versao: r._meta.versao }; },
     entregar: async (modo, entrega) => { entregas.push(entrega); return 'Entrega fictícia'; },
-    concluir: (id, token) => chamarFerramenta('confirmar_entrega', { id, token }, dono, banco)
+    concluir: (id, token) => chamarFerramenta('confirmar_entrega', { id, token }, dono, banco), ...substituicoes
   };
-  montarInterface(raiz, adaptador).carregar(criado);
+  const interfaceTeste = montarInterface(raiz, adaptador); interfaceTeste.carregar(criado);
   const ler = async () => (await chamarFerramenta('ler_formulario', { id: criado.structuredContent.id }, dono, banco))._meta.rascunho;
-  return { banco, raiz, entregas, ler };
+  const reabrir = async () => interfaceTeste.carregar(await chamarFerramenta('ler_formulario', { id: criado.structuredContent.id }, dono, banco));
+  return { banco, raiz, entregas, ler, reabrir };
 }
 async function selecionar(raiz, nome, valor) {
   const controles = raiz.querySelectorAll('input').filter(c => c.attrs.name === nome);
@@ -197,24 +198,70 @@ test('rascunho antigo com excesso de pontos conserva valores e permite reduçõe
 
 test('data e hora juntas preservam horário local, calendário e observação em uma resposta', () => {
   const f = formulario([{ texto: 'Quando?', tipo: 'data_hora' }]);
-  assert.equal(f.formato, 3); assert.equal(f.perguntas.length, 1);
+  assert.equal(f.formato, 4); assert.equal(f.perguntas.length, 1);
   assert.deepEqual(validarRascunho(f, {}).pendentes, ['p1']);
-  for (const resposta of ['2026-02-30T20:27', '2026-10-15T24:00', '2026-10-15', '0000-01-01T00:00', '2026-10-15T20:27Z', '2026-10-15T20:27:10']) assert.throws(() => validarRascunho(f, { respostas: { p1: resposta } }), /Data/);
+  for (const resposta of ['2026-02-30T20:27', '2026-10-15T24:00', '2026-10-15', '0000-01-01T00:00', '2026-10-15T20:27Z', '2026-10-15T20:27:10', 'textoT20:27', '2026-10-15Ttexto']) assert.throws(() => validarRascunho(f, { respostas: { p1: resposta } }), /Data|Hora/);
+  for (const resposta of ['2026-10-15T', 'T20:27']) {
+    assert.deepEqual(validarRascunho(f, { respostas: { p1: resposta } }).pendentes, ['p1']);
+    assert.throws(() => montarEntrega(f, { respostas: { p1: resposta } }), /Faltam/);
+  }
   for (const resposta of ['0001-01-01T00:00', '2024-02-29T23:59', '9999-12-31T23:59']) assert.deepEqual(validarRascunho(f, { respostas: { p1: resposta } }).pendentes, []);
   const e = montarEntrega(f, { respostas: { p1: '2026-10-15T20:27' }, observacoes: { p1: 'Horário escolhido' } });
   assert.match(e.texto, /15\/10\/2026 às 20:27/); assert.match(e.texto, /Horário escolhido/);
   assert.deepEqual(e.compacto.respostas, [['p1', '2026-10-15T20:27', 'Horário escolhido']]);
 });
 
-test('campo único de data e hora persiste a resposta e mantém uma observação comum', async () => {
+test('data e hora em dois campos nativos recusam texto e datas inválidas durante a edição', async () => {
   const c = await painelTeste([{ texto: 'Quando?', tipo: 'data_hora' }]);
   try {
-    const campo = c.raiz.querySelector('#pd-resposta-p1'); assert.equal(campo.type, 'datetime-local');
-    campo.value = '2026-10-15T20:27'; await campo.disparar('input');
+    const data = c.raiz.querySelector('#p1-data'), hora = c.raiz.querySelector('#p1-hora');
+    assert.equal(data.attrs.type, 'date'); assert.equal(hora.attrs.type, 'time');
+    assert.equal(c.raiz.querySelector('.pd-data-hora').querySelectorAll('input').length, 2);
+    data.value = 'texto'; await data.disparar('input'); await aguardarFila(); assert.equal(data.value, ''); assert.equal((await c.ler()).respostas.p1, undefined);
+    data.value = '2026-10-15'; await data.disparar('input'); await aguardarFila(); assert.equal((await c.ler()).respostas.p1, '2026-10-15T');
+    hora.value = '25:40'; await hora.disparar('input'); await aguardarFila(); assert.equal(hora.value, ''); assert.equal((await c.ler()).respostas.p1, '2026-10-15T');
+    hora.value = '20:27'; await hora.disparar('input');
     const observacao = c.raiz.querySelector('#pd-obs-p1'); observacao.value = 'Observação do compromisso'; await observacao.disparar('input'); await aguardarFila();
     const r = await c.ler(); assert.equal(r.respostas.p1, '2026-10-15T20:27'); assert.equal(r.observacoes.p1, 'Observação do compromisso');
+    data.value = '2026-02-30'; await data.disparar('input'); await aguardarFila(); assert.equal(data.value, '2026-10-15'); assert.equal((await c.ler()).respostas.p1, '2026-10-15T20:27');
     assert.match(c.raiz.querySelector('[data-progresso]').textContent, /^1 de 1/);
   } finally { c.banco.fechar(); }
+});
+
+test('ordem confirmada continua identificada ao reabrir e pode ser confirmada novamente', async () => {
+  const c = await painelTeste([{ texto: 'Prioridades', tipo: 'ordenacao', opcoes: ['A', 'B'] }]);
+  try {
+    await c.raiz.querySelector('[data-confirmar-ordem]').disparar('click');
+    await c.reabrir();
+    assert.match(c.raiz.querySelector('[data-estado-ordem]').textContent, /confirmada e guardada/);
+    const confirmar = c.raiz.querySelector('[data-confirmar-ordem]'); assert.equal(confirmar.textContent, 'Confirmar novamente');
+    await confirmar.disparar('click'); assert.equal(confirmar.textContent, 'Ordem confirmada');
+  } finally { c.banco.fechar(); }
+});
+
+test('botão de ordem não declara sucesso quando o salvamento falha', async () => {
+  const c = await painelTeste([{ texto: 'Prioridades', tipo: 'ordenacao', opcoes: ['A', 'B'] }], { salvar: async () => { throw new Error('Falha de gravação simulada'); } });
+  try {
+    const confirmar = c.raiz.querySelector('[data-confirmar-ordem]'); await confirmar.disparar('click');
+    assert.equal(confirmar.textContent, 'Tentar confirmar novamente'); assert.equal(confirmar.disabled, false);
+    assert.match(c.raiz.querySelector('[data-estado-ordem]').textContent, /Não consegui confirmar/);
+    assert.deepEqual((await c.ler()).respostas, {});
+  } finally { c.banco.fechar(); }
+});
+
+test('formato três é promovido atomicamente somente ao guardar e preserva o conteúdo', async () => {
+  const banco = bancoLocal();
+  const { Repositorio, escopoDataHora } = await import('../src/repositorio.mjs');
+  const repo = new Repositorio(banco), dono = 'perfil-promocao';
+  try {
+    const antigo = { ...formulario([{ texto: 'Quando?', tipo: 'data_hora' }, 'Texto antigo']), formato: 3 };
+    const criado = await repo.criar(dono, antigo, { respostas: { p1: '2026-10-15T20:27', p2: 'Preservado' }, observacoes: { p1: 'Observação' }, gerais: '', pagina: 0 });
+    assert.equal((await repo.ler(dono, criado.id)).formulario.formato, 3);
+    const salvo = await repo.salvar(dono, criado.id, criado.versao, { ...criado.rascunho, respostas: { ...criado.rascunho.respostas, p1: '2026-10-15T' } });
+    assert.equal(salvo.formulario.formato, 4); assert.equal(salvo.rascunho.respostas.p2, 'Preservado'); assert.equal(salvo.rascunho.observacoes.p1, 'Observação');
+    assert.equal(await banco.prepare('SELECT id FROM formularios WHERE id=? AND dono=?').bind(criado.id, escopoDataHora(dono)).first(), null);
+    await assert.rejects(repo.salvar(dono, criado.id, criado.versao, criado.rascunho), /mudou/);
+  } finally { banco.fechar(); }
 });
 
 test('lista adiciona, remove e mantém cada entrada separada', async () => {

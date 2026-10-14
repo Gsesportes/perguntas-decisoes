@@ -7,30 +7,35 @@ function registro(linha) {
 }
 export const escopoFormatos = dono => JSON.stringify(['perguntas-formatos-v1', dono]);
 export const escopoDataHora = dono => JSON.stringify(['perguntas-data-hora-v1', dono]);
+export const escopoDataHoraColunas = dono => JSON.stringify(['perguntas-data-hora-v2', dono]);
+function destinoAtual(dono, origem) {
+  return origem.formulario.formato === 3 ? { dono: escopoDataHoraColunas(dono), formulario: { ...origem.formulario, formato: 4 } } : { dono: origem.dono, formulario: origem.formulario };
+}
 
 export class Repositorio {
   constructor(banco) { this.banco = banco; }
   async criar(dono, formulario, rascunho) {
     const id = crypto.randomUUID();
-    await this.banco.prepare('INSERT INTO formularios (id,dono,definicao,rascunho,criado_em) VALUES (?,?,?,?,?)').bind(id, formulario.formato === 3 ? escopoDataHora(dono) : formulario.formato === 2 ? escopoFormatos(dono) : dono, JSON.stringify(formulario), JSON.stringify(rascunho), new Date().toISOString()).run();
+    await this.banco.prepare('INSERT INTO formularios (id,dono,definicao,rascunho,criado_em) VALUES (?,?,?,?,?)').bind(id, formulario.formato === 4 ? escopoDataHoraColunas(dono) : formulario.formato === 3 ? escopoDataHora(dono) : formulario.formato === 2 ? escopoFormatos(dono) : dono, JSON.stringify(formulario), JSON.stringify(rascunho), new Date().toISOString()).run();
     return this.ler(dono, id);
   }
   async ler(dono, id) {
-    const linha = await this.banco.prepare('SELECT * FROM formularios WHERE id=? AND dono IN (?,?,?)').bind(id, dono, escopoFormatos(dono), escopoDataHora(dono)).first();
+    const linha = await this.banco.prepare('SELECT * FROM formularios WHERE id=? AND dono IN (?,?,?,?)').bind(id, dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono)).first();
     if (!linha) throw new ErroFormulario('Formulário não encontrado ou acesso não autorizado.', 'nao_encontrado');
     return registro(linha);
   }
   async listar(dono, cursor) {
     const filtro = cursor ? ' AND (criado_em<? OR (criado_em=? AND id<?))' : '';
-    const valores = cursor ? [dono, escopoFormatos(dono), escopoDataHora(dono), cursor.criado_em, cursor.criado_em, cursor.id] : [dono, escopoFormatos(dono), escopoDataHora(dono)];
-    const linhas = await this.banco.prepare(`SELECT id,definicao,criado_em FROM formularios WHERE dono IN (?,?,?)${filtro} ORDER BY criado_em DESC,id DESC LIMIT 101`).bind(...valores).all();
+    const valores = cursor ? [dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono), cursor.criado_em, cursor.criado_em, cursor.id] : [dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono)];
+    const linhas = await this.banco.prepare(`SELECT id,definicao,criado_em FROM formularios WHERE dono IN (?,?,?,?)${filtro} ORDER BY criado_em DESC,id DESC LIMIT 101`).bind(...valores).all();
     const pagina = linhas.results.slice(0, 100);
     const ultima = pagina.at(-1);
     return { pendentes: pagina.map(linha => ({ id: linha.id, titulo: JSON.parse(linha.definicao).titulo })), proximaPagina: linhas.results.length > 100 ? { criado_em: ultima.criado_em, id: ultima.id } : null };
   }
   async salvar(dono, id, versao, rascunho) {
     const origem = await this.ler(dono, id);
-    const resultado = await this.banco.prepare('UPDATE formularios SET rascunho=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *').bind(JSON.stringify(rascunho), id, origem.dono, versao).first();
+    const destino = destinoAtual(dono, origem);
+    const resultado = await this.banco.prepare('UPDATE formularios SET rascunho=?,dono=?,definicao=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *').bind(JSON.stringify(rascunho), destino.dono, JSON.stringify(destino.formulario), id, origem.dono, versao).first();
     if (!resultado) throw new ErroFormulario('O formulário mudou em outra janela ou está em entrega. Reabra antes de continuar.', 'conflito');
     return registro(resultado);
   }
@@ -39,7 +44,8 @@ export class Repositorio {
     if (atual.entrega && atual.entrega.token === entrega.token) return atual;
     if (atual.versao !== versao) throw new ErroFormulario('O formulário mudou. Reabra antes de enviar.', 'conflito');
     if (atual.entrega) throw new ErroFormulario('Existe outra preparação. Confira a conversa e retome a edição antes de enviar.', 'conflito');
-    const resultado = await this.banco.prepare('UPDATE formularios SET rascunho=?,entrega=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *').bind(JSON.stringify(rascunho), JSON.stringify(entrega), id, atual.dono, versao).first();
+    const destino = destinoAtual(dono, atual);
+    const resultado = await this.banco.prepare('UPDATE formularios SET rascunho=?,entrega=?,dono=?,definicao=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *').bind(JSON.stringify(rascunho), JSON.stringify(entrega), destino.dono, JSON.stringify(destino.formulario), id, atual.dono, versao).first();
     if (!resultado) throw new ErroFormulario('O formulário mudou durante a entrega.', 'conflito');
     return registro(resultado);
   }

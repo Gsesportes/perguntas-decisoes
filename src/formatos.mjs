@@ -123,8 +123,14 @@ export function verificarResposta(pergunta, resposta) {
   if (pergunta.tipo === 'data' && (typeof resposta !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(resposta) || !Number.isFinite(Date.parse(`${resposta}T00:00:00Z`)) || new Date(`${resposta}T00:00:00Z`).toISOString().slice(0, 10) !== resposta)) throw new ErroFormulario(`Data inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'hora' && (typeof resposta !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(resposta))) throw new ErroFormulario(`Hora inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'data_hora') {
-    if (typeof resposta !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/.test(resposta) || resposta.startsWith('0000-')) throw new ErroFormulario(`Data e hora inválidas em ${pergunta.id}.`);
-    verificarResposta({ id: pergunta.id, tipo: 'data' }, resposta.slice(0, 10));
+    if (typeof resposta !== 'string' || resposta.split('T').length !== 2) throw new ErroFormulario(`Data e hora inválidas em ${pergunta.id}.`);
+    const [data, hora] = resposta.split('T');
+    if (data) {
+      if (data.startsWith('0000-')) throw new ErroFormulario(`Data inválida em ${pergunta.id}.`);
+      verificarResposta({ id: pergunta.id, tipo: 'data' }, data);
+    }
+    if (hora) verificarResposta({ id: pergunta.id, tipo: 'hora' }, hora);
+    return Boolean(data && hora);
   }
   if (pergunta.tipo === 'ordenacao' && (!Array.isArray(resposta) || resposta.length !== pergunta.opcoes.length || new Set(resposta).size !== resposta.length || resposta.some(valor => !pergunta.opcoes.includes(valor)))) throw new ErroFormulario(`Ordenação incompleta ou inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'imagens' && !pergunta.opcoes.some(opcao => opcao.texto === resposta)) throw new ErroFormulario(`Imagem escolhida inválida em ${pergunta.id}.`);

@@ -15,7 +15,7 @@ async function chamar(name, args) {
   return resultado;
 }
 const adaptador = {
-  origem: 'Perguntas e decisões',
+  origem: `Perguntas e decisões · ${VERSAO_PLUGIN}`,
   conexao: 'Os três modos entregam o conjunto ao aplicativo. A retenção termina depois da confirmação.',
   capacidades: () => capacidadesEntrega(aplicativo, extensoes),
   salvar: async (id, versao, rascunho) => (await chamar('salvar_rascunho', { id, versao, rascunho }))._meta.versao,

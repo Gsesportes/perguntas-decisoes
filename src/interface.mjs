@@ -136,28 +136,33 @@ export function montarInterface(raiz, adaptador) {
     }
   }
   function salvar() {
-    if (!atual || entregue) return;
+    if (!atual || entregue) return Promise.resolve({ confirmado: false, erro: new Error('Este formulário não está disponível para edição.') });
     const origem = atual;
     const preenchimento = structuredClone(origem.rascunho);
     salvamentosPendentes += 1;
     obter('[data-estado]').textContent = 'Guardando progresso…';
-    filaSalvamento = filaSalvamento.then(async () => {
+    const operacao = filaSalvamento.then(async () => {
       try {
         validarRascunho(origem.formulario, preenchimento);
         const versao = await adaptador.salvar(origem.id, origem.versao, preenchimento);
+        if (!Number.isSafeInteger(versao) || versao <= origem.versao) throw new Error('O servidor não confirmou uma nova versão do preenchimento.');
         origem.versao = versao;
         erroSalvamento = null;
         obter('[data-estado]').textContent = adaptador.salvamento ?? 'Progresso guardado';
+        return { confirmado: true, versao };
       } catch (erro) {
         erroSalvamento = erro;
         obter('[data-estado]').textContent = 'Progresso não confirmado';
         mostrarErro(erro.message);
+        return { confirmado: false, erro };
       } finally {
         salvamentosPendentes -= 1;
         atualizarNavegacao();
         aplicarCarregamentoPendente();
       }
     });
+    filaSalvamento = operacao.then(() => undefined);
+    return operacao;
   }
   function alterou(pergunta, campo, valor) {
     if (ocupado || entregue || entregaPreparada || preparacaoPendente) return;
@@ -169,7 +174,7 @@ export function montarInterface(raiz, adaptador) {
     mostrarErro('');
     const seguintes = perguntasVisiveis(atual.formulario, atual.rascunho.respostas).map(item => item.id).join(',');
     if (anteriores !== seguintes) desenharPagina(true); else atualizarNavegacao();
-    salvar();
+    return salvar();
   }
   function desenharPergunta(pergunta, indice) {
     const caixa = elemento('fieldset', { 'data-id': pergunta.id });
@@ -207,12 +212,15 @@ export function montarInterface(raiz, adaptador) {
       }
       caixa.append(conjunto);
     } else {
+      if (!['texto', 'numero', 'data', 'hora'].includes(pergunta.tipo)) {
+        caixa.append(elemento('p', { role: 'alert' }, 'Este formato exige uma versão atualizada do painel. Reabra pelo plugin; nenhum campo de texto foi usado no lugar dele.'));
+        return caixa;
+      }
       const id = `pd-resposta-${pergunta.id}`;
       const rotulo = elemento('label', { for: id, class: 'pd-rotulo' }, 'Sua resposta');
       const controle = elemento(pergunta.tipo === 'texto' ? 'textarea' : 'input', { id, name: pergunta.id });
       if (pergunta.tipo === 'texto') { controle.rows = 2; controle.placeholder = 'Escreva livremente'; }
-      else controle.type = { numero: 'number', data: 'date', hora: 'time', data_hora: 'datetime-local' }[pergunta.tipo];
-      if (pergunta.tipo === 'data_hora') { controle.min = '0001-01-01T00:00'; controle.max = '9999-12-31T23:59'; controle.step = 60; }
+      else controle.setAttribute('type', { numero: 'number', data: 'date', hora: 'time' }[pergunta.tipo]);
       if (pergunta.tipo === 'numero') { controle.min = pergunta.min; controle.max = pergunta.max; controle.step = pergunta.passo; }
       controle.value = resposta ?? '';
       const registrarResposta = () => {

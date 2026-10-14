@@ -2,7 +2,7 @@
 titulo: 'Formatos adicionais de perguntas e condições'
 tipo: 'funcionalidade'
 criado: '2026-10-14'
-estado: 'implementado-validacao-nativa-pendente'
+estado: 'implementado-reteste-nativo-pendente'
 contexto: []
 ---
 
@@ -31,6 +31,8 @@ Acrescentar todos os formatos apresentados e aprovados: tabela de classificaçã
 
 ## Ajustes após o teste humano — 0.4.4
 
+Esta seção registra a iteração anterior. Para data/hora e confirmação da ordem, prevalecem as regras de 0.4.5 abaixo.
+
 - Evidência recebida pelo aplicativo: respostas dos novos formatos e dos nove tipos antigos chegaram organizadas à conversa. O título do formulário menciona 0.4.1 e não comprova a versão do processo que o exibiu. O teste identificou ausência de retorno claro no botão de confirmar ordem, necessidade de limitar pontos durante a edição e preferência por rever a apresentação das estrelas.
 - Ordenação: confirmar sem movimentar deve persistir a permutação inicial como resposta humana, atualizar o progresso e mostrar confirmação no próprio controle. Após confirmar, o botão informa “Ordem confirmada”; mover novamente informa a alteração e permite confirmar outra vez. A indicação de confirmação registra a escolha humana; o estado global continua responsável por confirmar ou recusar o salvamento. Não prometer gravação antes da resposta do servidor.
 - Pontos no painel: máximo disponível por critério é o total menos os valores dos demais. Atualizar os limites e mostrar o saldo durante a edição. Recusar imediatamente uma nova digitação que exceda o saldo, seja negativa ou fracionada; preservar o último valor aceito e informar a recusa no próprio controle. Permitir limpar ou reduzir valores. Rascunhos antigos acima do total continuam abrindo: permitir reduções para corrigir o excesso, sem reescrever os outros critérios. A validação do servidor continua permitindo rascunho parcial e exigindo soma exata na entrega.
@@ -38,6 +40,14 @@ Acrescentar todos os formatos apresentados e aprovados: tabela de classificaçã
 - Estrelas: três imagens independentes apresentadas; a pessoa selecionou a primeira. Recriar a sequência de estrelas clicáveis, com preenchimento até a nota escolhida e resumo numérico abaixo. Preservar resposta numérica, mínimo e máximo atuais, seleção zero quando permitida, navegação por teclado, observação e ditado. Nenhuma nota inicial automática. Usar ícone de biblioteca com licença distribuída; demais alternativas são somente propostas históricas. Correções de ordem, pontos e data_hora não dependem de mudança de organização do painel.
 - Outras combinações: apresentar como propostas para avaliação, sem acrescentar automaticamente um construtor genérico ou novos tipos não escolhidos.
 - Instalar somente a versão completa 0.4.4, conservar componentes de versões anteriores, rascunhos e restrições de foco. Sem reinício do Codex, novo chat ou publicação remota.
+
+## Correção do reteste humano — 0.4.5
+
+- Data_hora deve apresentar duas colunas na mesma pergunta: Data e Hora, com inputs nativos date e time, observação comum e tipos declarados nos atributos. Validar calendário real, ano 0001–9999, horário 00:00–23:59 e minuto inteiro. Letras e valores incompatíveis são recusados durante a edição com aviso visível e preservação do último valor válido; entrada nativa incompleta fica pendente.
+- Resposta conserva o texto local AAAA-MM-DDTHH:mm. Rascunho pode guardar apenas uma parte válida como AAAA-MM-DDT ou THH:mm; entrega exige ambas. Nenhuma conversão de fuso. Novos formulários com esse controle usam formato 4 e escopo próprio, que servidores anteriores não leem. Um formulário de formato 3 é promovido atomicamente ao formato 4 no primeiro salvamento ou preparação pela versão nova, preservando IDs, conteúdo e proteção de concorrência. Sem alteração de outros formatos nem migração em leitura.
+- Confirmar ordem deve aguardar o resultado real do salvamento. Enquanto confirma, bloquear ações locais de ordenação; mostrar sucesso somente com confirmação do servidor e falha visível se ele recusar. Ao reabrir uma resposta já guardada, manter indicação de ordem confirmada; nova movimentação permite confirmar novamente. A fila global continua preservando erros, dados de origem e edição dos demais campos.
+- Cada versão usa URI de interface própria para solicitar seu conteúdo ao aplicativo. O endereço estável anterior continua legível como alias de compatibilidade; ferramentas anunciam somente a URI da versão atual. Exibir a versão junto à origem do painel. Isso torna distinguível uma aba antiga; a abertura real ainda exige prova no aplicativo, sem presumir sucesso pelo recurso servido.
+- Preservar estrelas selecionadas, pontos, tipos anteriores, paginação, observações, ditado e foco da conversa. Sem reiniciar o Codex, criar chat ou publicar. A renovação, quando necessária, será restrita ao plugin próprio e seus dados serão preservados.
 
 ## Matriz de entradas, saídas e fronteiras
 
@@ -89,6 +99,8 @@ Testes complementam a prova de uso; não equivalem a clique real no painel. Vali
 Em 2026-10-14, lint, construção, verificação do comando distribuído e 81 testes passaram. Duas versões reais do servidor preservaram os nove tipos legados e exercitaram respostas estruturadas, imagens, preparação e confirmação em banco isolado. O carregador oficial iniciou 0.4.2. A conexão da conversa serviu inicialmente o recurso 0.4.1 e, após uma nova resposta da pessoa usuária, passou a servir 0.4.2. Um formulário completo com 21 itens foi criado pela ferramenta da própria conversa; a pessoa confirmou sua exibição com os 20 itens inicialmente visíveis, pois uma pergunta é condicional. A automação nativa falhou antes de ler a tela com erro de gravação dos assets do kernel; cliques reais e entrega dos novos formatos no painel não estão confirmados.
 
 ## Histórico de mudanças
+
+- 2026-10-14 — Correção 0.4.5 após relato humano: Data e Hora em duas colunas com tipos nativos e validação durante a edição; rascunhos parciais válidos e formato 4, com promoção atômica do formato 3 somente em escrita. Confirmação da ordem aguarda confirmação real do salvamento, informa falha e permanece identificada ao reabrir. Interface anuncia URI por versão, conserva alias e exibe versão na origem. Lint, construção, 90 testes, comando distribuído e protocolo real entre 0.4.4 e 0.4.5 passaram. Plugin próprio desinstalado e reinstalado em 0.4.5 sem reiniciar o Codex; dados preservados. Conexão desta execução removida na reinstalação e ainda não redisponibilizada após resposta pelo cartão; abertura e reteste nativos continuam pendentes. Automação de tela e Windows falharam antes de executar ações.
 
 - 2026-10-14 — Entrega humana recebida pelo MCP com respostas dos formatos novos e antigos e observações sobre ordem, pontos e estrelas. Apresentadas três imagens; primeira escolhida e implementada. Fonte final 0.4.4 acrescenta data_hora com formato 3, limites dinâmicos de pontos e confirmação visível da ordem. Versão única do pacote usada no painel e nos servidores; diagnóstico verifica coerência. Lint, construção, 87 testes e protocolo entre 0.3.6-ditado.6, 0.4.2 e 0.4.4 passaram. 0.4.4 instalada sem reiniciar o aplicativo; conexão desta conversa ainda reportou 0.4.2. Validação visual e reteste nativo dos ajustes pendentes, com conferência visual marcada como bloqueada.
 

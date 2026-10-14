@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE } from '../src/servidor.mjs';
+import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE, URI_INTERFACE_LEGADA } from '../src/servidor.mjs';
 import { bancoLocal } from '../scripts/banco-local.mjs';
 import { OpenAIUiToolMetadataSchema } from '@openai/mcp-extensions/server';
 
@@ -33,6 +33,9 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
     assert.equal(resultado._meta.formulario.perguntas.length, 50);
     assert.deepEqual(resultado.content, []);
     const recurso = await cliente.readResource({ uri: URI_INTERFACE });
+    const recursos = await cliente.listResources(); assert.equal(recursos.resources[0].uri, URI_INTERFACE);
+    const legado = await cliente.readResource({ uri: URI_INTERFACE_LEGADA });
+    assert.notEqual(URI_INTERFACE, URI_INTERFACE_LEGADA); assert.equal(legado.contents[0].text, recurso.contents[0].text);
     assert.equal(recurso.contents[0].mimeType, 'text/html;profile=mcp-app');
     assert.deepEqual(recurso.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen']);
   } finally { await cliente.close(); DB.fechar(); }

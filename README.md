@@ -10,7 +10,7 @@ Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop 
 
 ## Instalação rápida em outro PC
 
-A fonte local está na versão 0.4.4, com os formatos adicionais e ajustes após teste de uso. O pacote público abaixo continua na versão 0.3.5 e ainda não contém esses formatos nem o ditado local. Construir e instalar a fonte segue as instruções seguintes; isso não comprova recarga de um painel já aberto.
+A fonte local está na versão 0.4.5, com os formatos adicionais e ajustes após teste de uso. O pacote público abaixo continua na versão 0.3.5 e ainda não contém esses formatos nem o ditado local. Construir e instalar a fonte segue as instruções seguintes; isso não comprova recarga de um painel já aberto.
 
 1. Instale o Codex desktop e [Node.js 24 ou superior](https://nodejs.org/en/download).
 2. Na página do projeto no GitHub, abra **Releases** e baixe **perguntas-decisoes-instalar-0.3.5.zip**.
@@ -83,8 +83,8 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 
 - Seis perguntas por página. Anterior conserva conteúdo; Próximo exige respostas da página.
 - Sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora; a partir da fonte 0.4.0, também tabela, ordenação, imagens, pontos, intervalo e lista.
-- A partir de 0.4.4, data_hora reúne data e horário local em uma pergunta, com uma observação comum. Não converte o valor para UTC nem adiciona fuso horário.
-- Ordenação mostra a confirmação no controle. Pontos mostram o saldo e atualizam o máximo por critério; uma digitação acima do saldo é recusada imediatamente, com aviso e manutenção do último valor aceito.
+- Data_hora reúne duas colunas, Data e Hora, na mesma pergunta, com uma observação comum. A partir de 0.4.5, valores inválidos são recusados durante a edição e uma parte válida pode ser guardada enquanto a outra está pendente. A entrega exige as duas. Não há conversão para UTC ou adição de fuso.
+- Ordenação aguarda a confirmação do salvamento antes de mostrar sucesso e conserva a indicação ao reabrir. Pontos mostram o saldo e atualizam o máximo por critério; uma digitação acima do saldo é recusada imediatamente, com aviso e manutenção do último valor aceito.
 - Estrelas ficam em sequência clicável, preenchem até a nota escolhida e mostram o resumo numérico abaixo. A escolha continua sendo um número e observações permanecem livres.
 - Alternativas visíveis em um clique; observações individuais e gerais opcionais.
 - Entregas somente na última página.

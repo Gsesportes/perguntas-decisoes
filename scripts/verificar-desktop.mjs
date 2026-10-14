@@ -30,7 +30,7 @@ try {
   assert.equal(visiveis.length, 2);
   const abertura = ferramentas.tools.find(ferramenta => ferramenta.name === 'abrir_painel');
   assert.equal(abertura.title, 'Perguntas e decisões');
-  assert.equal(abertura._meta.ui.resourceUri, 'ui://perguntas-decisoes/painel');
+  assert.equal(abertura._meta.ui.resourceUri, `ui://perguntas-decisoes/${manifesto.version}/painel`);
   const metadados = OpenAIUiToolMetadataSchema.parse(abertura._meta['openai/ui']);
   assert.ok(metadados.entrypoints.some(item => item.type === 'thread'));
   const painelVazio = await cliente.callTool({ name: 'abrir_painel', arguments: {} });
@@ -38,7 +38,7 @@ try {
   const criado = await cliente.callTool({ name: 'criar_formulario', arguments: { titulo: 'Integração local — verificação', perguntas: [{ texto: 'O formulário local abre?', tipo: 'sim_nao' }] } });
   assert.equal(criado.isError, undefined);
   const id = criado.structuredContent.id;
-  const leitura = await cliente.readResource({ uri: 'ui://perguntas-decisoes/painel' });
+  const leitura = await cliente.readResource({ uri: abertura._meta.ui.resourceUri });
   assert.equal(leitura.contents[0].mimeType, 'text/html;profile=mcp-app');
   assert.ok(leitura.contents[0].text.includes('perguntas-decisoes-app'));
   assert.ok(leitura.contents[0].text.includes(manifesto.version), 'A interface não contém a versão atual do pacote.');

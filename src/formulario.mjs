@@ -22,7 +22,7 @@ export function normalizarFormulario(entrada) {
   if (entrada.opcoes !== undefined && !perguntas.some(pergunta => ['unica', 'multipla', 'ordenacao'].includes(pergunta.tipo))) throw new ErroFormulario('Alternativas informadas sem uma pergunta de escolha. Indique o tipo de pergunta.');
   if (perguntas.length > 1000) throw new ErroFormulario('O formulário expandido supera 1000 perguntas. Divida a tabela.');
   validarCondicoes(perguntas);
-  const formulario = { titulo, perguntas, ...(possuiRecursosNovos(perguntas) ? { formato: perguntas.some(pergunta => pergunta.tipo === 'data_hora') ? 3 : 2 } : {}) };
+  const formulario = { titulo, perguntas, ...(possuiRecursosNovos(perguntas) ? { formato: perguntas.some(pergunta => pergunta.tipo === 'data_hora') ? 4 : 2 } : {}) };
   if (tamanhoJson(formulario) > LIMITE_FORMULARIO) throw new ErroFormulario('O formulário supera 400 KB. Divida a lista ou reduza as alternativas por item.', 'limite_tamanho');
   return formulario;
 }

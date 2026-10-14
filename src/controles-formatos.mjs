@@ -1,4 +1,5 @@
 import { ICONE_ESTRELA } from './icones-estrelas.mjs';
+import { verificarResposta } from './formatos.mjs';
 
 function criar(tag, atributos = {}, texto) {
   const elemento = document.createElement(tag);
@@ -19,19 +20,20 @@ export function montarControleFormato({ pergunta, resposta, alterar, lerImagem, 
   const bloco = criar('div', { class: 'pd-formato', 'data-formato': pergunta.tipo });
   if (pergunta.tipo === 'ordenacao') {
     let ordem = resposta ? [...resposta] : [...pergunta.opcoes];
+    let confirmando = false;
     const lista = criar('ol', { class: 'pd-ordenacao', 'aria-label': pergunta.texto });
-    const confirmar = criar('button', { type: 'button', 'data-confirmar-ordem': '', 'data-editavel': 'true' }, 'Confirmar esta ordem');
-    const estado = criar('p', { class: 'pd-ajuda', role: 'status', 'data-estado-ordem': '' }, resposta ? 'Ordem preenchida. Você pode ajustar ou confirmar.' : 'Mova os itens ou confirme a ordem apresentada.');
+    const confirmar = criar('button', { type: 'button', 'data-confirmar-ordem': '', 'data-editavel': 'true' }, resposta ? 'Confirmar novamente' : 'Confirmar esta ordem');
+    const estado = criar('p', { class: 'pd-ajuda', role: 'status', 'data-estado-ordem': '' }, resposta ? 'Ordem confirmada e guardada. Você pode alterar ou confirmar novamente.' : 'Mova os itens ou confirme a ordem apresentada.');
     function desenhar() {
       lista.replaceChildren(...ordem.map((texto, indice) => {
         const linha = criar('li');
         linha.append(criar('span', {}, texto));
         for (const [deslocamento, simbolo, verbo] of [[-1, '↑', 'Subir'], [1, '↓', 'Descer']]) {
           const botao = criar('button', { type: 'button', 'aria-label': `${verbo} ${texto}`, 'data-editavel': 'true' }, simbolo);
-          indisponivel(botao, indice + deslocamento < 0 || indice + deslocamento >= ordem.length);
+          indisponivel(botao, confirmando || indice + deslocamento < 0 || indice + deslocamento >= ordem.length);
           botao.addEventListener('click', () => {
             const destino = indice + deslocamento;
-            if (!podeEditar() || destino < 0 || destino >= ordem.length) return;
+            if (confirmando || !podeEditar() || destino < 0 || destino >= ordem.length) return;
             [ordem[indice], ordem[destino]] = [ordem[destino], ordem[indice]];
             desenhar(); alterar([...ordem]);
             confirmar.textContent = 'Confirmar esta ordem'; indisponivel(confirmar, false);
@@ -42,13 +44,52 @@ export function montarControleFormato({ pergunta, resposta, alterar, lerImagem, 
         return linha;
       }));
     }
-    confirmar.addEventListener('click', () => {
+    confirmar.addEventListener('click', async () => {
       if (!podeEditar() || confirmar.disabled) return;
-      alterar([...ordem]); confirmar.textContent = 'Ordem confirmada'; indisponivel(confirmar, true);
-      estado.textContent = 'Ordem confirmada. Você pode continuar ou mover os itens novamente.';
+      confirmando = true; indisponivel(confirmar, true); confirmar.textContent = 'Confirmando…';
+      estado.textContent = 'Aguardando confirmação do salvamento.'; desenhar();
+      try {
+        const resultado = await alterar([...ordem]);
+        if (!resultado?.confirmado) throw resultado?.erro ?? new Error('O salvamento não foi confirmado.');
+        if (confirmar.isConnected) { confirmar.textContent = 'Ordem confirmada'; estado.textContent = 'Ordem confirmada e guardada. Você pode continuar ou mover os itens novamente.'; }
+      } catch (erro) {
+        if (confirmar.isConnected) { confirmar.textContent = 'Tentar confirmar novamente'; estado.textContent = 'Não consegui confirmar a ordem. ' + erro.message; indisponivel(confirmar, false); }
+      } finally { confirmando = false; if (lista.isConnected) desenhar(); }
     });
     bloco.append(estado, lista, confirmar);
     desenhar(); return bloco;
+  }
+  if (pergunta.tipo === 'data_hora') {
+    const [data = '', hora = ''] = typeof resposta === 'string' ? resposta.split('T') : [];
+    const partes = { data, hora };
+    bloco.className += ' pd-data-hora';
+    const aviso = criar('p', { class: 'pd-aviso-limite pd-data-hora-aviso', role: 'alert', 'data-aviso-data-hora': '' }); aviso.hidden = true;
+    const estado = criar('p', { class: 'pd-ajuda pd-data-hora-aviso', role: 'status' });
+    const atualizar = () => { estado.textContent = partes.data && partes.hora ? 'Data e hora preenchidas.' : 'Preencha a data e a hora.'; };
+    for (const [chave, tipo, rotulo] of [['data', 'date', 'Data'], ['hora', 'time', 'Hora']]) {
+      const id = `${pergunta.id}-${chave}`;
+      const grupo = criar('div', { class: 'pd-campo-composto' });
+      const campo = criar('input', { id, type: tipo, name: id, inputmode: 'numeric', required: '', ...(tipo === 'date' ? { min: '0001-01-01', max: '9999-12-31' } : { min: '00:00', max: '23:59', step: 60 }) });
+      campo.value = partes[chave];
+      const registrar = () => {
+        if (!podeEditar()) return;
+        const valor = campo.value;
+        try {
+          if (valor) verificarResposta(pergunta, chave === 'data' ? `${valor}T` : `T${valor}`);
+        } catch {
+          campo.value = partes[chave]; aviso.textContent = chave === 'data' ? 'Use uma data válida. O valor anterior foi mantido.' : 'Use um horário válido entre 00:00 e 23:59. O valor anterior foi mantido.';
+          aviso.hidden = false; return;
+        }
+        const mudou = partes[chave] !== valor;
+        partes[chave] = valor;
+        aviso.hidden = !campo.validity?.badInput;
+        aviso.textContent = campo.validity?.badInput ? `Complete ${chave === 'data' ? 'uma data' : 'um horário'} válido.` : '';
+        atualizar(); if (mudou) alterar(partes.data || partes.hora ? `${partes.data}T${partes.hora}` : undefined);
+      };
+      campo.addEventListener('input', registrar); campo.addEventListener('change', registrar);
+      grupo.append(criar('label', { for: id, class: 'pd-rotulo' }, rotulo), campo); bloco.append(grupo);
+    }
+    atualizar(); bloco.append(estado, aviso); return bloco;
   }
   if (pergunta.tipo === 'pontos') {
     const valores = { ...(resposta ?? {}) };

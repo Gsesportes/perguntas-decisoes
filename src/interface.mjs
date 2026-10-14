@@ -32,6 +32,11 @@ export function montarInterface(raiz, adaptador) {
     aviso.textContent = mensagem;
     aviso.hidden = !mensagem || lista.hidden;
   }
+  function mostrarAvisoApresentacao(mensagem) {
+    const aviso = obter('[data-aviso-apresentacao]');
+    aviso.textContent = mensagem;
+    aviso.hidden = !mensagem;
+  }
   function aplicarCarregamentoPendente() {
     if (!carregamentoPendente || ocupado || salvamentosPendentes || erroSalvamento || preparacaoPendente || (entregaPreparada && !entregue)) return;
     const resultado = carregamentoPendente;
@@ -351,5 +356,5 @@ export function montarInterface(raiz, adaptador) {
       raiz.querySelectorAll('form input,form textarea').forEach(campo => { campo.disabled = true; });
     }
   }
-  return { carregar, atualizarNavegacao, mostrarErro };
+  return { carregar, atualizarNavegacao, mostrarErro, mostrarAvisoApresentacao };
 }

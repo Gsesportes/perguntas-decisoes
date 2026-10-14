@@ -18230,17 +18230,42 @@ var CfWorkerJsonSchemaValidator = class {
   }
 };
 
-// src/servidor.mjs
+// src/exibicao.mjs
 var URI_INTERFACE = "ui://perguntas-decisoes/painel";
+var URI_INTERFACE_CHAT = "ui://perguntas-decisoes/chat";
+var EXIBICAO_FORMULARIO = { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen", "inline"] };
+var EXIBICAO_NO_CHAT = { preferredDisplayMode: "inline", availableDisplayModes: ["inline", "fullscreen"] };
+var RECURSOS_INTERFACE = [
+  { name: "painel", uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app" },
+  { name: "formulario-no-chat", uri: URI_INTERFACE_CHAT, mimeType: "text/html;profile=mcp-app" }
+];
+function lerRecursoInterface(html2, uri2) {
+  const apresentacao = uri2 === URI_INTERFACE ? "lateral" : uri2 === URI_INTERFACE_CHAT ? "chat" : null;
+  if (!apresentacao) throw new Error("Recurso de interface n\xE3o encontrado.");
+  const marcador = 'id="perguntas-decisoes-app"';
+  if (!html2.includes(marcador)) throw new Error("A interface n\xE3o cont\xE9m o formul\xE1rio esperado.");
+  return {
+    uri: uri2,
+    mimeType: "text/html;profile=mcp-app",
+    text: html2.replace(marcador, `${marcador} data-apresentacao="${apresentacao}"`),
+    _meta: { "openai/ui": apresentacao === "chat" ? EXIBICAO_NO_CHAT : EXIBICAO_FORMULARIO }
+  };
+}
+
+// src/servidor.mjs
 var esquemaPergunta = { anyOf: [{ type: "string" }, { type: "object", properties: { texto: { type: "string" }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } }, min: { type: "number" }, max: { type: "number" }, passo: { type: "number" } }, required: ["texto"], additionalProperties: false }] };
 var objeto = (properties) => ({ type: "object", properties, additionalProperties: false });
 var leitura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 var alteracao = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 var ui = { ui: { resourceUri: URI_INTERFACE } };
+var uiChat = { ui: { resourceUri: URI_INTERFACE_CHAT } };
 var privada = { ui: { visibility: ["app"] } };
+var entradaCriacao = { ...objeto({ titulo: { type: "string" }, perguntas: { type: "array", items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } } }), required: ["perguntas"] };
 var FERRAMENTAS = [
-  { name: "criar_formulario", title: "Responder perguntas", description: "Cria perguntas e abre a aba lateral. N\xE3o selecione chats nem ative janelas para abrir ou verificar. Tipos: texto, sim_nao, unica, multipla, nota, escala, numero, data, hora. Tipo/op\xE7\xF5es comuns, observa\xE7\xF5es e p\xE1ginas autom\xE1ticas.", inputSchema: { ...objeto({ titulo: { type: "string" }, perguntas: { type: "array", items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } } }), required: ["perguntas"] }, annotations: alteracao, _meta: ui },
-  { name: "abrir_painel", title: "Perguntas e decis\xF5es", description: "Abre a aba lateral; pelo id retoma um formul\xE1rio, sem id lista pendentes. Preserve o chat principal: n\xE3o navegue nem ative janelas para abrir ou verificar.", inputSchema: objeto({ id: { type: "string" } }), annotations: leitura, _meta: { ...ui, "openai/ui": { entrypoints: [{ type: "thread" }, { type: "global" }] } } },
+  { name: "criar_formulario", title: "Responder perguntas", description: "Cria perguntas na barra lateral direita, apresenta\xE7\xE3o padr\xE3o. Preserve o chat principal.", inputSchema: entradaCriacao, annotations: alteracao, _meta: ui },
+  { name: "abrir_painel", title: "Perguntas e decis\xF5es", description: "Abre a barra lateral direita, padr\xE3o; pelo id retoma, sem id lista pendentes. Preserve o chat principal.", inputSchema: objeto({ id: { type: "string" } }), annotations: leitura, _meta: { ...ui, "openai/ui": { entrypoints: [{ type: "thread" }, { type: "global" }] } } },
+  { name: "criar_formulario_no_chat", title: "Responder no chat", description: "Cria perguntas dentro da conversa somente quando a pessoa pedir o modo no chat.", inputSchema: entradaCriacao, annotations: alteracao, _meta: uiChat },
+  { name: "abrir_no_chat", title: "Abrir no chat", description: "Abre no chat somente quando solicitado; pelo id retoma, sem id lista pendentes. Preserve a conversa principal.", inputSchema: objeto({ id: { type: "string" } }), annotations: leitura, _meta: uiChat },
   { name: "ler_formulario", inputSchema: { ...objeto({ id: { type: "string" } }), required: ["id"] }, annotations: leitura, _meta: privada },
   { name: "listar_pendentes", inputSchema: objeto({ cursor: { ...objeto({ criado_em: { type: "string", minLength: 1, maxLength: 100 }, id: { type: "string", minLength: 1, maxLength: 100 } }), required: ["criado_em", "id"] } }), annotations: leitura, _meta: privada },
   { name: "salvar_rascunho", inputSchema: { ...objeto({ id: { type: "string" }, versao: { type: "integer" }, rascunho: { type: "object" } }), required: ["id", "versao", "rascunho"] }, annotations: alteracao, _meta: privada },
@@ -18275,6 +18300,8 @@ function paraInterface(registro2) {
 }
 async function chamarFerramenta(nome, entrada, dono, banco) {
   validarEntradaFerramenta(nome, entrada);
+  if (nome === "criar_formulario_no_chat") nome = "criar_formulario";
+  if (nome === "abrir_no_chat") nome = "abrir_painel";
   const repositorio = new Repositorio(banco);
   if (nome === "criar_formulario") return paraInterface(await repositorio.criar(dono, normalizarFormulario(entrada), rascunhoVazio()));
   if (nome === "abrir_painel") {
@@ -18370,13 +18397,12 @@ var armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS
 var html = readFileSync2(new URL("../dist/web/painel.html", import.meta.url), "utf8");
 var imagemIcone = readFileSync2(new URL("../assets/icone-128.png", import.meta.url));
 var icones = [{ src: `data:image/png;base64,${imagemIcone.toString("base64")}`, mimeType: "image/png", sizes: ["128x128"] }];
-var servidor = new Server({ name: "perguntas-decisoes", title: "Perguntas e decis\xF5es", version: "0.3.5", icons: icones }, { capabilities: { tools: {}, resources: {} } });
+var servidor = new Server({ name: "perguntas-decisoes", title: "Perguntas e decis\xF5es", version: "0.3.8", icons: icones }, { capabilities: { tools: {}, resources: {} } });
 servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: FERRAMENTAS }));
-servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: "painel", uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app" }] }));
+servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: RECURSOS_INTERFACE }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));
 servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
-  if (params.uri !== URI_INTERFACE) throw new Error("Recurso de interface n\xE3o encontrado.");
-  return { contents: [{ uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app", text: html, _meta: { "openai/ui": { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen"] } } }] };
+  return { contents: [lerRecursoInterface(html, params.uri)] };
 });
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   try {

@@ -83,9 +83,14 @@ test('dados avançados ficam fora do escopo legado, com acesso normal pelo servi
   try {
     const antigo = await chamarFerramenta('criar_formulario', { perguntas: ['Texto antigo'] }, dono, banco);
     const novo = await chamarFerramenta('criar_formulario', { perguntas: [{ texto: 'Lista', tipo: 'lista' }] }, dono, banco);
+    const composto = await chamarFerramenta('criar_formulario', { perguntas: [{ texto: 'Quando?', tipo: 'data_hora' }] }, dono, banco);
     const legados = await banco.prepare('SELECT id FROM formularios WHERE dono=?').bind(dono).all();
     assert.deepEqual(legados.results.map(r => r.id), [antigo.structuredContent.id]);
-    assert.equal((await chamarFerramenta('listar_pendentes', {}, dono, banco))._meta.pendentes.length, 2);
+    const { escopoFormatos } = await import('../src/repositorio.mjs');
+    const versaoIntermediaria = await banco.prepare('SELECT id FROM formularios WHERE dono IN (?,?)').bind(dono, escopoFormatos(dono)).all();
+    assert.ok(versaoIntermediaria.results.some(r => r.id === novo.structuredContent.id));
+    assert.ok(!versaoIntermediaria.results.some(r => r.id === composto.structuredContent.id));
+    assert.equal((await chamarFerramenta('listar_pendentes', {}, dono, banco))._meta.pendentes.length, 3);
     await assert.rejects(chamarFerramenta('ler_formulario', { id: novo.structuredContent.id }, 'outro-perfil', banco), /acesso não autorizado/);
     const r = await chamarFerramenta('salvar_rascunho', { id: novo.structuredContent.id, versao: 1, rascunho: { respostas: { p1: ['Item'] } } }, dono, banco);
     const e = await chamarFerramenta('preparar_entrega', { id: novo.structuredContent.id, versao: r._meta.versao, rascunho: { respostas: { p1: ['Item'] } } }, dono, banco);
@@ -131,6 +136,87 @@ test('controles de ordem, pontos e faixa persistem valores e impedem envio incom
     assert.equal(c.entregas.length, 1); assert.ok(!c.entregas[0].texto.includes('[object Object]'));
   } finally { c.banco.fechar(); }
 });
+test('confirmar a ordem inicial persiste a escolha e dá retorno visível, com nova confirmação após mover', async () => {
+  const c = await painelTeste([{ texto: 'Prioridades', tipo: 'ordenacao', opcoes: ['Clareza', 'Qualidade'] }]);
+  try {
+    const confirmar = c.raiz.querySelector('[data-confirmar-ordem]');
+    assert.deepEqual((await c.ler()).respostas, {});
+    await confirmar.disparar('click'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, ['Clareza', 'Qualidade']);
+    assert.equal(confirmar.textContent, 'Ordem confirmada'); assert.equal(confirmar.disabled, true);
+    assert.match(c.raiz.querySelector('[data-progresso]').textContent, /^1 de 1/);
+    const descer = c.raiz.querySelectorAll('button').find(b => b.attrs['aria-label'] === 'Descer Clareza');
+    await descer.disparar('click'); await aguardarFila();
+    assert.equal(confirmar.disabled, false); assert.equal(confirmar.textContent, 'Confirmar esta ordem');
+    assert.deepEqual((await c.ler()).respostas.p1, ['Qualidade', 'Clareza']);
+    await confirmar.disparar('click'); await aguardarFila();
+    assert.equal(confirmar.textContent, 'Ordem confirmada');
+  } finally { c.banco.fechar(); }
+});
+
+test('pontos restringem saldo por critério e recusam excesso, frações e negativos durante a edição', async () => {
+  const c = await painelTeste([{ texto: 'Pesos', tipo: 'pontos', itens: ['Clareza', 'Qualidade', 'Velocidade'], total: 100 }]);
+  try {
+    const primeiro = c.raiz.querySelector('#p1-i1'), segundo = c.raiz.querySelector('#p1-i2'), terceiro = c.raiz.querySelector('#p1-i3');
+    assert.deepEqual((await c.ler()).respostas, {});
+    primeiro.value = '60'; await primeiro.disparar('input'); await aguardarFila();
+    assert.equal(segundo.attrs.max, '40'); assert.equal(terceiro.attrs.max, '40');
+    segundo.value = '50'; await segundo.disparar('input'); await aguardarFila();
+    assert.equal(segundo.value, '0'); assert.deepEqual((await c.ler()).respostas.p1, { i1: 60 });
+    assert.equal(c.raiz.querySelector('[data-aviso-pontos]').hidden, false);
+    assert.match(c.raiz.querySelector('[data-aviso-pontos]').textContent, /40 pontos disponíveis/);
+    segundo.value = '40'; await segundo.disparar('input'); await aguardarFila();
+    assert.equal(terceiro.attrs.max, '0'); assert.equal(c.raiz.querySelector('[data-aviso-pontos]').hidden, true);
+    for (const valor of ['-1', '0.5', '1']) { terceiro.value = valor; await terceiro.disparar('input'); await aguardarFila(); assert.equal(terceiro.value, '0'); }
+    assert.deepEqual((await c.ler()).respostas.p1, { i1: 60, i2: 40 });
+    primeiro.value = '50'; await primeiro.disparar('input'); await aguardarFila();
+    assert.equal(terceiro.attrs.max, '10');
+    terceiro.value = '10'; await terceiro.disparar('input'); await aguardarFila();
+    assert.deepEqual((await c.ler()).respostas.p1, { i1: 50, i2: 40, i3: 10 });
+    await c.raiz.querySelectorAll('[data-entrega]')[0].disparar('click');
+    assert.equal(c.entregas.length, 1); assert.match(c.entregas[0].texto, /Velocidade: 10 pontos/);
+  } finally { c.banco.fechar(); }
+});
+
+test('rascunho antigo com excesso de pontos conserva valores e permite reduções graduais', async () => {
+  const { montarControleFormato } = await import('../src/controles-formatos.mjs');
+  const raiz = criarDomTeste(), respostas = [];
+  const pergunta = formulario([{ texto: 'Pesos', tipo: 'pontos', itens: ['A', 'B'] }]).perguntas[0];
+  const controle = montarControleFormato({ pergunta, resposta: { i1: 80, i2: 60 }, alterar: valor => respostas.push(valor), podeEditar: () => true });
+  raiz.querySelector('form').append(controle);
+  const campo = raiz.querySelector('#p1-i1');
+  assert.equal(campo.value, 80); assert.equal(campo.attrs.max, '40');
+  assert.match(raiz.querySelector('[data-aviso-pontos]').textContent, /rascunho ultrapassa/);
+  campo.value = '70'; await campo.disparar('input');
+  assert.deepEqual(respostas.at(-1), { i1: 70, i2: 60 });
+  campo.value = '75'; await campo.disparar('input'); assert.equal(campo.value, '70');
+  campo.value = '40'; await campo.disparar('input');
+  assert.deepEqual(respostas.at(-1), { i1: 40, i2: 60 });
+  assert.equal(raiz.querySelector('[data-aviso-pontos]').hidden, true);
+});
+
+test('data e hora juntas preservam horário local, calendário e observação em uma resposta', () => {
+  const f = formulario([{ texto: 'Quando?', tipo: 'data_hora' }]);
+  assert.equal(f.formato, 3); assert.equal(f.perguntas.length, 1);
+  assert.deepEqual(validarRascunho(f, {}).pendentes, ['p1']);
+  for (const resposta of ['2026-02-30T20:27', '2026-10-15T24:00', '2026-10-15', '0000-01-01T00:00', '2026-10-15T20:27Z', '2026-10-15T20:27:10']) assert.throws(() => validarRascunho(f, { respostas: { p1: resposta } }), /Data/);
+  for (const resposta of ['0001-01-01T00:00', '2024-02-29T23:59', '9999-12-31T23:59']) assert.deepEqual(validarRascunho(f, { respostas: { p1: resposta } }).pendentes, []);
+  const e = montarEntrega(f, { respostas: { p1: '2026-10-15T20:27' }, observacoes: { p1: 'Horário escolhido' } });
+  assert.match(e.texto, /15\/10\/2026 às 20:27/); assert.match(e.texto, /Horário escolhido/);
+  assert.deepEqual(e.compacto.respostas, [['p1', '2026-10-15T20:27', 'Horário escolhido']]);
+});
+
+test('campo único de data e hora persiste a resposta e mantém uma observação comum', async () => {
+  const c = await painelTeste([{ texto: 'Quando?', tipo: 'data_hora' }]);
+  try {
+    const campo = c.raiz.querySelector('#pd-resposta-p1'); assert.equal(campo.type, 'datetime-local');
+    campo.value = '2026-10-15T20:27'; await campo.disparar('input');
+    const observacao = c.raiz.querySelector('#pd-obs-p1'); observacao.value = 'Observação do compromisso'; await observacao.disparar('input'); await aguardarFila();
+    const r = await c.ler(); assert.equal(r.respostas.p1, '2026-10-15T20:27'); assert.equal(r.observacoes.p1, 'Observação do compromisso');
+    assert.match(c.raiz.querySelector('[data-progresso]').textContent, /^1 de 1/);
+  } finally { c.banco.fechar(); }
+});
+
 test('lista adiciona, remove e mantém cada entrada separada', async () => {
   const c = await painelTeste([{ texto: 'Sugestões', tipo: 'lista', max_itens: 2 }]);
   try {
@@ -148,6 +234,8 @@ test('estrelas, emojis e barra preservam zero sem resposta automática', async (
   try {
     assert.equal(Object.keys((await c.ler()).respostas).length, 0);
     await selecionar(c.raiz, 'p1', 4); await selecionar(c.raiz, 'p2', 5);
+    assert.equal(c.raiz.querySelector('[data-valor-estrelas]').textContent, '4 de 5 estrelas');
+    assert.equal(c.raiz.querySelectorAll('[data-estrela]').filter(icone => icone.dataset.preenchida === 'true').length, 4);
     const barra = c.raiz.querySelector('#pd-barra-p3'); await barra.disparar('click'); await aguardarFila();
     assert.deepEqual((await c.ler()).respostas, { p1: 4, p2: 5, p3: 0 });
   } finally { c.banco.fechar(); }
@@ -163,5 +251,20 @@ test('interface oculta, conserva e restaura respostas condicionais sem perder ou
     await selecionar(c.raiz, 'p1', 'Não'); assert.equal(c.raiz.querySelector('#pd-resposta-p2'), undefined);
     assert.equal((await c.ler()).respostas.p2, 'Detalhe guardado');
     await selecionar(c.raiz, 'p1', 'Sim'); assert.equal(c.raiz.querySelector('#pd-resposta-p2').value, 'Detalhe guardado');
+  } finally { c.banco.fechar(); }
+});
+
+test('estrelas preservam zero e mínimo personalizado sem selecionar valores indisponíveis', async () => {
+  const c = await painelTeste([{ texto: 'Zero permitido', tipo: 'nota', visual: 'estrelas', min: 0, max: 5 }, { texto: 'Mínimo dois', tipo: 'nota', visual: 'estrelas', min: 2, max: 5 }]);
+  try {
+    await selecionar(c.raiz, 'p1', 0);
+    assert.equal((await c.ler()).respostas.p1, 0);
+    const segunda = c.raiz.querySelector('[data-id="p2"]');
+    const primeiraEstrela = segunda.querySelectorAll('input').find(campo => campo.attrs.value === '1');
+    assert.equal(primeiraEstrela.disabled, true); primeiraEstrela.checked = true; await primeiraEstrela.disparar('change'); await aguardarFila();
+    assert.equal((await c.ler()).respostas.p2, undefined);
+    await selecionar(c.raiz, 'p2', 4);
+    assert.equal((await c.ler()).respostas.p2, 4);
+    assert.equal(segunda.querySelectorAll('[data-estrela]').filter(icone => icone.dataset.preenchida === 'true').length, 4);
   } finally { c.banco.fechar(); }
 });

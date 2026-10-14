@@ -1,7 +1,7 @@
 import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega, perguntasVisiveis } from './formulario.mjs';
 import { criarDitadoInterface } from './ditado-interface.mjs';
 import { verificarResposta } from './formatos.mjs';
-import { montarControleFormato, montarBarra } from './controles-formatos.mjs';
+import { montarControleFormato, montarBarra, montarEstrelas } from './controles-formatos.mjs';
 
 export function coordenarCargaInicial({ carregar, listar, mostrarErro }) {
   let recebeuResultado = false;
@@ -183,11 +183,11 @@ export function montarInterface(raiz, adaptador) {
     const composto = montarControleFormato({ pergunta, resposta, alterar: valor => alterou(pergunta, 'respostas', valor), podeEditar, lerImagem: adaptador.lerImagem ? (id, opcao) => adaptador.lerImagem(atual.id, id, opcao) : null });
     if (composto) caixa.append(composto);
     else if (pergunta.visual === 'barra') caixa.append(montarBarra(pergunta, resposta, valor => alterou(pergunta, 'respostas', valor), podeEditar));
+    else if (pergunta.visual === 'estrelas') caixa.append(montarEstrelas(pergunta, resposta, valor => alterou(pergunta, 'respostas', valor), podeEditar));
     else if (['sim_nao', 'unica', 'multipla', 'nota', 'escala'].includes(pergunta.tipo)) {
       const numerica = ['nota', 'escala'].includes(pergunta.tipo);
       const opcoes = numerica ? Array.from({ length: Math.floor((pergunta.max - pergunta.min) / pergunta.passo + 0.000001) + 1 }, (_, posicao) => Number((pergunta.min + posicao * pergunta.passo).toFixed(6))) : pergunta.opcoes;
       const conjunto = elemento('div', { class: 'pd-opcoes' });
-      const estrelas = [];
       const rostos = ['😞', '🙁', '😐', '🙂', '😄'];
       for (const opcao of opcoes) {
         const rotulo = elemento('label', { class: 'cursor-interaction' });
@@ -197,18 +197,9 @@ export function montarInterface(raiz, adaptador) {
           if (!podeEditar()) return;
           const selecionadas = [...conjunto.querySelectorAll('input:checked')].map(campo => numerica ? Number(campo.value) : campo.value);
           alterou(pergunta, 'respostas', pergunta.tipo === 'multipla' ? selecionadas : selecionadas[0]);
-          if (pergunta.visual === 'estrelas') for (const estrela of estrelas) estrela.textContent = estrela.valor <= selecionadas[0] ? '★' : '☆';
         });
         rotulo.append(controle);
-        if (pergunta.visual === 'estrelas') {
-          rotulo.className += ' pd-estrela';
-          controle.setAttribute('aria-label', `${opcao} de ${pergunta.max} estrelas`);
-          if (opcao === 0) rotulo.append(document.createTextNode('0'));
-          else {
-            const estrela = elemento('span', { 'aria-hidden': 'true' }, opcao <= resposta ? '★' : '☆'); estrela.valor = opcao;
-            estrelas.push(estrela); rotulo.append(estrela);
-          }
-        } else if (pergunta.visual === 'emojis') {
+        if (pergunta.visual === 'emojis') {
           rotulo.className += ' pd-emoji'; controle.setAttribute('aria-label', `Nota ${opcao} de 5`);
           rotulo.append(elemento('span', { 'aria-hidden': 'true' }, rostos[opcao - 1]), document.createTextNode(String(opcao)));
         } else rotulo.append(document.createTextNode(String(opcao)));
@@ -220,7 +211,8 @@ export function montarInterface(raiz, adaptador) {
       const rotulo = elemento('label', { for: id, class: 'pd-rotulo' }, 'Sua resposta');
       const controle = elemento(pergunta.tipo === 'texto' ? 'textarea' : 'input', { id, name: pergunta.id });
       if (pergunta.tipo === 'texto') { controle.rows = 2; controle.placeholder = 'Escreva livremente'; }
-      else controle.type = { numero: 'number', data: 'date', hora: 'time' }[pergunta.tipo];
+      else controle.type = { numero: 'number', data: 'date', hora: 'time', data_hora: 'datetime-local' }[pergunta.tipo];
+      if (pergunta.tipo === 'data_hora') { controle.min = '0001-01-01T00:00'; controle.max = '9999-12-31T23:59'; controle.step = 60; }
       if (pergunta.tipo === 'numero') { controle.min = pergunta.min; controle.max = pergunta.max; controle.step = pergunta.passo; }
       controle.value = resposta ?? '';
       const registrarResposta = () => {

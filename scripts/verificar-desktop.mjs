@@ -24,6 +24,7 @@ async function conectar() {
 }
 let cliente = await conectar();
 try {
+  assert.equal(cliente.getServerVersion().version, manifesto.version, 'Versão do servidor diferente do manifesto.');
   const ferramentas = await cliente.listTools();
   const visiveis = ferramentas.tools.filter(ferramenta => ferramenta._meta?.ui?.visibility?.[0] !== 'app');
   assert.equal(visiveis.length, 2);
@@ -40,6 +41,7 @@ try {
   const leitura = await cliente.readResource({ uri: 'ui://perguntas-decisoes/painel' });
   assert.equal(leitura.contents[0].mimeType, 'text/html;profile=mcp-app');
   assert.ok(leitura.contents[0].text.includes('perguntas-decisoes-app'));
+  assert.ok(leitura.contents[0].text.includes(manifesto.version), 'A interface não contém a versão atual do pacote.');
   const salvo = await cliente.callTool({ name: 'salvar_rascunho', arguments: { id, versao: criado._meta.versao, rascunho: { respostas: { p1: 'Não' }, observacoes: { p1: 'Comentário da verificação local.' } } } });
   assert.equal(salvo.isError, undefined);
   await cliente.close();

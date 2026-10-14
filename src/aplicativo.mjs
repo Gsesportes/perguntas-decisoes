@@ -3,9 +3,10 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { montarInterface, coordenarCargaInicial } from './interface.mjs';
 import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
+import { VERSAO_PLUGIN } from './versao.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.4.2' });
-document.getElementById('perguntas-decisoes-app').setAttribute('data-versao', '0.4.2');
+const aplicativo = new App({ name: 'perguntas-decisoes', version: VERSAO_PLUGIN });
+document.getElementById('perguntas-decisoes-app').setAttribute('data-versao', VERSAO_PLUGIN);
 const extensoes = new OpenAIExtensions(aplicativo);
 async function chamar(name, args) {
   validarTamanhoChamada(name, args);

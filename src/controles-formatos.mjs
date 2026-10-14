@@ -1,3 +1,5 @@
+import { ICONE_ESTRELA } from './icones-estrelas.mjs';
+
 function criar(tag, atributos = {}, texto) {
   const elemento = document.createElement(tag);
   for (const [nome, valor] of Object.entries(atributos)) elemento.setAttribute(nome, String(valor));
@@ -9,7 +11,7 @@ function numero(id, rotulo, pergunta, valor, registrar) {
   const grupo = criar('div', { class: 'pd-campo-composto' });
   const campo = criar('input', { id, type: 'number', min: pergunta.min, max: pergunta.max, step: pergunta.passo });
   campo.value = valor ?? '';
-  campo.addEventListener('input', () => registrar(campo.value === '' || !Number.isFinite(campo.valueAsNumber) ? undefined : campo.valueAsNumber));
+  campo.addEventListener('input', () => registrar(campo.value === '' || !Number.isFinite(campo.valueAsNumber) ? undefined : campo.valueAsNumber, campo));
   grupo.append(criar('label', { for: id, class: 'pd-rotulo' }, rotulo), campo);
   return grupo;
 }
@@ -19,6 +21,7 @@ export function montarControleFormato({ pergunta, resposta, alterar, lerImagem, 
     let ordem = resposta ? [...resposta] : [...pergunta.opcoes];
     const lista = criar('ol', { class: 'pd-ordenacao', 'aria-label': pergunta.texto });
     const confirmar = criar('button', { type: 'button', 'data-confirmar-ordem': '', 'data-editavel': 'true' }, 'Confirmar esta ordem');
+    const estado = criar('p', { class: 'pd-ajuda', role: 'status', 'data-estado-ordem': '' }, resposta ? 'Ordem preenchida. Você pode ajustar ou confirmar.' : 'Mova os itens ou confirme a ordem apresentada.');
     function desenhar() {
       lista.replaceChildren(...ordem.map((texto, indice) => {
         const linha = criar('li');
@@ -31,26 +34,57 @@ export function montarControleFormato({ pergunta, resposta, alterar, lerImagem, 
             if (!podeEditar() || destino < 0 || destino >= ordem.length) return;
             [ordem[indice], ordem[destino]] = [ordem[destino], ordem[indice]];
             desenhar(); alterar([...ordem]);
+            confirmar.textContent = 'Confirmar esta ordem'; indisponivel(confirmar, false);
+            estado.textContent = 'Ordem alterada. A nova sequência já está selecionada.';
           });
           linha.append(botao);
         }
         return linha;
       }));
     }
-    confirmar.addEventListener('click', () => { if (podeEditar()) alterar([...ordem]); });
-    bloco.append(criar('p', { class: 'pd-ajuda' }, 'Mova os itens ou confirme a ordem apresentada.'), lista, confirmar);
+    confirmar.addEventListener('click', () => {
+      if (!podeEditar() || confirmar.disabled) return;
+      alterar([...ordem]); confirmar.textContent = 'Ordem confirmada'; indisponivel(confirmar, true);
+      estado.textContent = 'Ordem confirmada. Você pode continuar ou mover os itens novamente.';
+    });
+    bloco.append(estado, lista, confirmar);
     desenhar(); return bloco;
   }
   if (pergunta.tipo === 'pontos') {
     const valores = { ...(resposta ?? {}) };
     const resumo = criar('p', { class: 'pd-ajuda', role: 'status', 'data-soma-pontos': '' });
-    const atualizar = () => { resumo.textContent = `Distribuídos ${pergunta.itens.reduce((soma, item) => soma + (valores[item.id] ?? 0), 0)} de ${pergunta.total} pontos`; };
-    for (const item of pergunta.itens) bloco.append(numero(`${pergunta.id}-${item.id}`, item.texto, { min: 0, max: pergunta.total, passo: 1 }, valores[item.id] ?? 0, valor => {
-      if (!podeEditar()) return;
-      if (valor === undefined) delete valores[item.id]; else valores[item.id] = valor;
-      atualizar(); alterar({ ...valores });
-    }));
-    atualizar(); bloco.append(resumo); return bloco;
+    const aviso = criar('p', { class: 'pd-aviso-limite', role: 'alert', 'data-aviso-pontos': '' }); aviso.hidden = true;
+    const campos = new Map();
+    const soma = () => pergunta.itens.reduce((total, item) => total + (valores[item.id] ?? 0), 0);
+    const disponiveis = id => Math.max(0, pergunta.total - (soma() - (valores[id] ?? 0)));
+    function atualizar() {
+      const saldo = pergunta.total - soma();
+      resumo.textContent = `Distribuídos ${soma()} de ${pergunta.total} pontos. ${saldo >= 0 ? `Restam ${saldo} pontos.` : `Excesso de ${-saldo} pontos.`}`;
+      for (const [id, { campo, ajuda }] of campos) {
+        const limite = disponiveis(id);
+        campo.setAttribute('max', limite); ajuda.textContent = `Disponíveis neste critério: até ${limite} pontos.`;
+      }
+      aviso.hidden = saldo >= 0;
+      aviso.textContent = saldo < 0 ? 'Este rascunho ultrapassa o total. Reduza os valores para corrigir; suas respostas foram preservadas.' : '';
+    }
+    for (const item of pergunta.itens) {
+      const grupo = numero(`${pergunta.id}-${item.id}`, item.texto, { min: 0, max: disponiveis(item.id), passo: 1 }, valores[item.id] ?? 0, (valor, campo) => {
+        if (!podeEditar()) return;
+        const limite = disponiveis(item.id), anterior = valores[item.id] ?? 0;
+        const corrigindoExcesso = soma() > pergunta.total && valor < anterior;
+        if (valor !== undefined && (!Number.isSafeInteger(valor) || valor < 0 || valor > pergunta.total || (valor > limite && !corrigindoExcesso))) {
+          campo.value = valores[item.id] === undefined ? '0' : String(valores[item.id]);
+          aviso.textContent = !Number.isSafeInteger(valor) || valor < 0 ? 'Use pontos inteiros a partir de zero. O valor anterior foi mantido.' : `Neste critério há até ${limite} pontos disponíveis. Reduza outro valor para aumentar este. O valor anterior foi mantido.`;
+          aviso.hidden = false; return;
+        }
+        if (valor === undefined) delete valores[item.id]; else valores[item.id] = valor;
+        atualizar(); alterar({ ...valores });
+      });
+      const ajuda = criar('p', { id: `${pergunta.id}-${item.id}-limite`, class: 'pd-ajuda' });
+      const campo = grupo.querySelector('input'); campo.setAttribute('aria-describedby', `${pergunta.id}-${item.id}-limite`);
+      grupo.append(ajuda); campos.set(item.id, { campo, ajuda }); bloco.append(grupo);
+    }
+    atualizar(); bloco.append(resumo, aviso); return bloco;
   }
   if (pergunta.tipo === 'intervalo') {
     const valores = { ...(resposta ?? {}) };
@@ -129,5 +163,36 @@ export function montarBarra(pergunta, resposta, alterar, podeEditar) {
   campo.addEventListener('input', registrar); campo.addEventListener('click', registrar);
   campo.addEventListener('keyup', evento => { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(evento.key)) registrar(); });
   bloco.append(campo, valor, criar('span', { class: 'pd-ajuda' }, `${pergunta.min} a ${pergunta.max}${pergunta.unidade ? ' ' + pergunta.unidade : ''}`));
+  return bloco;
+}
+
+export function montarEstrelas(pergunta, resposta, alterar, podeEditar) {
+  const bloco = criar('div', { class: 'pd-controle-estrelas' });
+  const grupo = criar('div', { class: 'pd-estrelas', role: 'radiogroup', 'aria-label': 'Sua avaliação em estrelas' });
+  const resumo = criar('output', { class: 'pd-estrelas-valor', 'data-valor-estrelas': '', 'aria-live': 'polite' });
+  const icones = [];
+  function atualizar(valor) {
+    resumo.textContent = valor === undefined ? 'Ainda não respondido' : `${valor} de ${pergunta.max} estrelas`;
+    for (const { icone, nota } of icones) icone.setAttribute('data-preenchida', String(valor !== undefined && nota <= valor));
+  }
+  for (let nota = pergunta.min === 0 ? 0 : 1; nota <= pergunta.max; nota += 1) {
+    const rotulo = criar('label', { class: 'pd-estrela-escolha cursor-interaction' });
+    const campo = criar('input', { type: 'radio', name: pergunta.id, value: nota, 'aria-label': `${nota} de ${pergunta.max} estrelas` });
+    campo.checked = resposta === nota; indisponivel(campo, nota < pergunta.min);
+    campo.addEventListener('change', () => {
+      if (campo.disabled || !podeEditar() || !campo.checked) return;
+      atualizar(nota); alterar(nota);
+    });
+    rotulo.append(campo);
+    if (nota === 0) rotulo.append(criar('span', { 'aria-hidden': 'true' }, '0'));
+    else {
+      const icone = criar('span', { class: 'pd-estrela-icone', 'aria-hidden': 'true', 'data-estrela': nota });
+      icone.innerHTML = ICONE_ESTRELA;
+      icones.push({ icone, nota }); rotulo.append(icone);
+    }
+    grupo.append(rotulo);
+  }
+  atualizar(resposta);
+  bloco.append(grupo, resumo, criar('p', { class: 'pd-ajuda' }, 'Clique em uma estrela para escolher sua nota.'));
   return bloco;
 }

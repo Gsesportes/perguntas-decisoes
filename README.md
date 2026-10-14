@@ -6,11 +6,11 @@ Plugin local para reunir perguntas e classificações no painel lateral do Codex
 
 ## Requisitos
 
-Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop com plugins, MCP Apps e OpenAI Extensions. A instalação e o início do MCP da fonte 0.4.2 foram conferidos na CLI 0.162.0-alpha.17.2. ChatGPT web, celular e nuvem não integram esta versão; outros anfitriões podem oferecer apenas parte das entregas.
+Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop com plugins, MCP Apps e OpenAI Extensions. A instalação e o início do MCP foram conferidos na CLI 0.162.0-alpha.17.2. ChatGPT web, celular e nuvem não integram esta versão; outros anfitriões podem oferecer apenas parte das entregas.
 
 ## Instalação rápida em outro PC
 
-A fonte local está na versão 0.4.2, com os formatos adicionais em validação. O pacote público abaixo continua na versão 0.3.5 e ainda não contém esses formatos nem o ditado local. Construir e instalar a fonte segue as instruções seguintes; isso não comprova recarga de um painel já aberto.
+A fonte local está na versão 0.4.4, com os formatos adicionais e ajustes após teste de uso. O pacote público abaixo continua na versão 0.3.5 e ainda não contém esses formatos nem o ditado local. Construir e instalar a fonte segue as instruções seguintes; isso não comprova recarga de um painel já aberto.
 
 1. Instale o Codex desktop e [Node.js 24 ou superior](https://nodejs.org/en/download).
 2. Na página do projeto no GitHub, abra **Releases** e baixe **perguntas-decisoes-instalar-0.3.5.zip**.
@@ -83,6 +83,9 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 
 - Seis perguntas por página. Anterior conserva conteúdo; Próximo exige respostas da página.
 - Sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora; a partir da fonte 0.4.0, também tabela, ordenação, imagens, pontos, intervalo e lista.
+- A partir de 0.4.4, data_hora reúne data e horário local em uma pergunta, com uma observação comum. Não converte o valor para UTC nem adiciona fuso horário.
+- Ordenação mostra a confirmação no controle. Pontos mostram o saldo e atualizam o máximo por critério; uma digitação acima do saldo é recusada imediatamente, com aviso e manutenção do último valor aceito.
+- Estrelas ficam em sequência clicável, preenchem até a nota escolhida e mostram o resumo numérico abaixo. A escolha continua sendo um número e observações permanecem livres.
 - Alternativas visíveis em um clique; observações individuais e gerais opcionais.
 - Entregas somente na última página.
 - **Enviar ao chat:** solicita mensagem com o conjunto completo.

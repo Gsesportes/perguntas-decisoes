@@ -1,7 +1,7 @@
 export default [{
   files: ['**/*.mjs'],
   languageOptions: {
-    ecmaVersion: 2023,
+    ecmaVersion: 2025,
     sourceType: 'module',
     globals: Object.fromEntries(['document', 'window', 'globalThis', 'crypto', 'structuredClone', 'Headers', 'Request', 'Response', 'URL', 'FormData', 'Blob', 'TextEncoder', 'setTimeout', 'clearTimeout', 'console', 'process', 'Buffer'].map(nome => [nome, 'readonly']))
   },

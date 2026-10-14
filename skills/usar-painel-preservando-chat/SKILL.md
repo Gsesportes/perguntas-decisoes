@@ -17,4 +17,6 @@ Formatos adicionais: tabela com itens e opções comuns; ordenacao com opções;
 
 Para classificar um lote de textos, use perguntas textuais, tipo tabela e opções comuns. Para misturar formatos, use objetos por pergunta. Nota/escala aceitam visual estrelas, emojis ou barra; número também aceita barra. Condição: se {pergunta: p1, igual: Sim}; referência a pergunta anterior. Linhas de tabela agrupada têm IDs pN_iM; as demais conservam pN.
 
+Data e hora juntas usam tipo data_hora, disponível a partir de 0.4.4: uma pergunta com um campo e uma observação comum. A resposta mantém o horário local escolhido, sem conversão de fuso. Servidores até 0.4.2 não abrem esses formulários.
+
 Não atribua escolhas nem confirme ordem pelo usuário. Os controles não selecionam resposta inicial. Use observações livres em todos os formatos. Novos formatos exigem versão 0.4.0; confirme a versão e os controles do painel antes de declarar teste de uso.

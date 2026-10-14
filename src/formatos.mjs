@@ -1,6 +1,6 @@
 import { ErroFormulario } from './erros.mjs';
 
-export const TIPOS = ['sim_nao', 'unica', 'multipla', 'texto', 'nota', 'escala', 'numero', 'data', 'hora', 'tabela', 'ordenacao', 'imagens', 'pontos', 'intervalo', 'lista'];
+export const TIPOS = ['sim_nao', 'unica', 'multipla', 'texto', 'nota', 'escala', 'numero', 'data', 'hora', 'tabela', 'ordenacao', 'imagens', 'pontos', 'intervalo', 'lista', 'data_hora'];
 const antigos = new Set(TIPOS.slice(0, 9));
 const numericos = new Set(['nota', 'escala', 'numero', 'intervalo']);
 const visuais = ['botoes', 'estrelas', 'emojis', 'barra'];
@@ -122,6 +122,10 @@ export function verificarResposta(pergunta, resposta) {
   if (['nota', 'escala', 'numero'].includes(pergunta.tipo)) validarNumero(pergunta, resposta);
   if (pergunta.tipo === 'data' && (typeof resposta !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(resposta) || !Number.isFinite(Date.parse(`${resposta}T00:00:00Z`)) || new Date(`${resposta}T00:00:00Z`).toISOString().slice(0, 10) !== resposta)) throw new ErroFormulario(`Data inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'hora' && (typeof resposta !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(resposta))) throw new ErroFormulario(`Hora inválida em ${pergunta.id}.`);
+  if (pergunta.tipo === 'data_hora') {
+    if (typeof resposta !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/.test(resposta) || resposta.startsWith('0000-')) throw new ErroFormulario(`Data e hora inválidas em ${pergunta.id}.`);
+    verificarResposta({ id: pergunta.id, tipo: 'data' }, resposta.slice(0, 10));
+  }
   if (pergunta.tipo === 'ordenacao' && (!Array.isArray(resposta) || resposta.length !== pergunta.opcoes.length || new Set(resposta).size !== resposta.length || resposta.some(valor => !pergunta.opcoes.includes(valor)))) throw new ErroFormulario(`Ordenação incompleta ou inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'imagens' && !pergunta.opcoes.some(opcao => opcao.texto === resposta)) throw new ErroFormulario(`Imagem escolhida inválida em ${pergunta.id}.`);
   if (pergunta.tipo === 'pontos') {
@@ -147,6 +151,10 @@ export function respostaParaEntrega(pergunta, resposta) {
   return resposta;
 }
 export function formatarResposta(pergunta, resposta) {
+  if (pergunta.tipo === 'data_hora') {
+    const [data, hora] = resposta.split('T'); const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano} às ${hora}`;
+  }
   if (pergunta.tipo === 'ordenacao' || pergunta.tipo === 'lista') return '\n' + resposta.map((item, indice) => `${indice + 1}. ${item}`).join('\n');
   if (pergunta.tipo === 'pontos') return '\n' + pergunta.itens.map(item => `${item.texto}: ${resposta[item.id] ?? 0} pontos`).join('\n');
   if (pergunta.tipo === 'intervalo') return `De ${resposta.min} a ${resposta.max}${pergunta.unidade ? ' ' + pergunta.unidade : ''}`;

@@ -1,4 +1,5 @@
 import { normalizarFormulario, rascunhoVazio, validarRascunho, montarEntrega, migrarPaginacao, ErroFormulario, TIPOS, validarTamanhoChamada } from './formulario.mjs';
+import { VERSAO_PLUGIN } from './versao.mjs';
 import { Repositorio } from './repositorio.mjs';
 import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/cfworker';
 
@@ -100,7 +101,7 @@ export async function atenderMcp(request, env, interfaceHtml) {
   const responder = result => json({ jsonrpc: '2.0', id: chamada.id, result });
   if (chamada.method === 'initialize') {
     const suportados = ['2025-03-26', '2025-06-18', '2025-11-25', '2026-07-28'];
-    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.1.0' } });
+    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: VERSAO_PLUGIN } });
   }
   if (chamada.method === 'ping') return responder({});
   if (chamada.method === 'tools/list') return responder({ tools: FERRAMENTAS });

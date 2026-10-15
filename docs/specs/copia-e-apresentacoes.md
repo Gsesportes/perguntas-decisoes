@@ -12,7 +12,7 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 
 ## Fronteiras e restrições
 
-- Versão completa 0.5.0. Preservar logo, cores, tipografia, organização e seis perguntas por página. Aplicar apenas os espaçamentos compactos do PR e os controles necessários à cópia. Sem reiniciar o Codex, criar chat, mudar a conversa principal ou publicar no GitHub nesta etapa.
+- Versão completa 0.5.0. Preservar logo, cores, tipografia, organização e seis perguntas por página. Aplicar apenas os espaçamentos compactos do PR e os controles necessários à cópia. Sem reiniciar o Codex, criar chat ou mudar a conversa principal. A etapa de implementação local ocorreu sem publicação; em 2026-10-15 foi autorizada a abertura do PR desta versão. Merge e release não fazem parte dessa autorização.
 - Copiar na última página, junto às entregas, e na tela de sucesso depois de enviar, anotar ou anexar. Texto completo, legível, com perguntas visíveis, respostas e observações individuais e gerais, na ordem do formulário. Não usar texto compacto interno nem copiar dados ocultos por condições.
 - Antes do envio, a cópia exige formulário completo e salvamentos conferidos. Copiar não prepara entrega, não envia mensagem, não anexa arquivo, não altera respostas e não remove o rascunho. Desabilitar enquanto houver ditado, envio ou cópia em andamento. Sucesso somente depois de confirmação real da escrita na área de transferência; falha visível, permitindo retentar.
 - Depois do envio, usar em memória somente o texto do conjunto entregue enquanto essa tela permanecer aberta. O registro continua sendo removido do banco pela confirmação de entrega. Não recriar rascunho nem persistir cópia em arquivo, log ou configuração. Ao carregar outro formulário, limpar a referência temporária. A área de transferência pertence ao sistema e conserva o texto até outra cópia substituí-lo, independentemente da remoção do rascunho.
@@ -51,9 +51,12 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 - [x] Instalar versão completa 0.5.0 e conferir versão efetivamente carregada nesta conversa: ainda 0.4.6.
 - [x] Carregar a interface 0.5.0 nesta conversa; exibição do formulário e botão Copiar confirmada pela pessoa em 2026-10-15.
 - [ ] Exercitar Copiar no painel real antes e depois da entrega.
-- [x] Auditar fonte pública e registrar alterações em Git local, sem publicação remota.
+- [x] Auditar fonte pública e registrar alterações em Git local antes de publicar.
+- [x] Publicar a branch codex/versao-0-5-0 e abrir o PR #3 em rascunho, conforme autorização de 2026-10-15.
 
 ## Histórico de mudanças
+
+- 2026-10-15 — Publicada a branch codex/versao-0-5-0 e aberto o PR #3 em rascunho para main: https://github.com/Gsesportes/perguntas-decisoes/pull/3. Inclui a evolução completa até 0.5.0, ditado, formatos, cópia e melhorias adaptadas do PR #1. Lint e 134 testes passaram; auditoria da fonte, catálogo e histórico sem referências pessoais, credenciais ou arquivos privados. A exibição da interface 0.5.0 foi confirmada, mas o reteste dos cliques de Copiar no painel permanece pendente. Sem merge ou release.
 
 - 2026-10-15 — Conexão da conversa redisponibilizada com os dois recursos e quatro ferramentas da versão 0.5.0. A ferramenta da própria conversa solicitou abrir o formulário curto já criado; a pessoa confirmou título, versão 0.5.0 e botão Copiar no painel. A leitura automatizada de tela não dispõe de superfícies nesta sessão; confirmação de exibição é humana. Testes de clique em Copiar antes e depois do envio ainda aguardam execução da pessoa, sem reabrir o registro depois da entrega.
 

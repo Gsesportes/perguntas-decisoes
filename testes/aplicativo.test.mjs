@@ -25,7 +25,7 @@ const construcao = await build({
   }]
 });
 
-async function iniciar(t, apresentacao, contexto, falhaExibicao) {
+async function iniciar(t, apresentacao, contexto, falhaExibicao, durantePedido) {
   const anteriores = { document: globalThis.document, window: globalThis.window, aplicativo: globalThis.__aplicativoTeste };
   t.after(() => { globalThis.document = anteriores.document; globalThis.window = anteriores.window; globalThis.__aplicativoTeste = anteriores.aplicativo; });
   const raiz = criarDomTeste();
@@ -41,7 +41,7 @@ async function iniciar(t, apresentacao, contexto, falhaExibicao) {
     getHostCapabilities: () => ({}),
     addEventListener: (nome, funcao) => ouvintes.set(nome, funcao),
     connect: async () => {},
-    requestDisplayMode: async () => { if (falhaExibicao) throw new Error(falhaExibicao); return { mode: contexto.displayMode }; },
+    requestDisplayMode: async () => { durantePedido?.(aplicativo, () => ouvintes.get('hostcontextchanged')()); if (falhaExibicao) throw new Error(falhaExibicao); return { mode: contexto.displayMode }; },
     callServerTool: async pedido => pedido.name === 'listar_pendentes' ? { _meta: { pendentes: [] } } : { _meta: { versao: ++versao } }
   };
   globalThis.__aplicativoTeste = aplicativo;
@@ -102,4 +102,12 @@ test('Chat confirmado abre sem aviso de apresentação e preserva o resultado re
   c.carregar();
   assert.equal(c.aviso.hidden, true);
   assert.equal(c.raiz.querySelector('[data-progresso]').textContent, '6 de 7 respondidas');
+});
+
+for (const [apresentacao, inicial, esperado] of [['chat', 'fullscreen', 'inline'], ['lateral', 'inline', 'fullscreen']]) test('R3: evento confirma ' + esperado + ' antes da resposta perdida sem reintroduzir aviso', async t => {
+  const c = await iniciar(t, apresentacao, { displayMode: inicial, availableDisplayModes: ['inline', 'fullscreen'] }, 'Resposta de exibição perdida', (aplicativo, emitir) => { aplicativo.contexto = { ...aplicativo.contexto, displayMode: esperado }; emitir(); });
+  assert.equal(c.aviso.hidden, true);
+  c.carregar(); assert.equal(c.aviso.hidden, true); assert.equal(document.documentElement.dataset.modoExibicao, esperado);
+  c.mudarContexto({ displayMode: inicial, availableDisplayModes: ['inline', 'fullscreen'] });
+  assert.equal(c.aviso.hidden, false, 'Uma confirmação antiga não deve esconder mudança posterior do modo.');
 });

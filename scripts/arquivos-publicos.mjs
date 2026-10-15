@@ -21,7 +21,7 @@ export const ARQUIVOS_PUBLICOS = [
   'src/conciliacao.mjs', 'testes/conciliacao.test.mjs',
   'src/copia.mjs', 'src/copia-desktop.mjs', 'src/exibicao.mjs',
   'testes/copia.test.mjs', 'testes/exibicao.test.mjs', 'testes/aplicativo.test.mjs',
-  'docs/specs/copia-e-apresentacoes.md'
+  'docs/specs/copia-e-apresentacoes.md', 'testes/revisao-pr3.test.mjs'
 ];
 
 export const ARQUIVOS_GERADOS = [

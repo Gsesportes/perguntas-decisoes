@@ -1,6 +1,6 @@
 {
   "name": "perguntas-decisoes",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Perguntas e decisões em lote no aplicativo desktop.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills",

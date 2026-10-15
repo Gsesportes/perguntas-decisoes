@@ -125,10 +125,14 @@ function reconhecer(sessao, motor, wav) {
     });
   });
 }
-export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new URL('../native/CapturaMicrofone.exe', import.meta.url)) }) {
+export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new URL('../native/CapturaMicrofone.exe', import.meta.url)), prepararMotor = obterMotor, capturarAudio = capturar }) {
   const repositorio = new Repositorio(banco);
   const sessoes = new Map();
   let motorPreparado;
+  let encerrado = false;
+  function conferirServicoAberto() {
+    if (encerrado) throw new Error('O serviço de ditado foi encerrado.');
+  }
   async function conferirDestino(destino, original) {
     validarDestino(destino);
     const registro = await repositorio.ler(dono, destino.id);
@@ -146,7 +150,7 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
   async function executar(sessao, motor) {
     let pcm;
     try {
-      const captura = await capturar(sessao, executavel);
+      const captura = await capturarAudio(sessao, executavel);
       pcm = captura.pcm; sessao.metricas = captura.metricas;
       if (sessao.cancelado) return;
       if (captura.erro) throw new Error(captura.erro);
@@ -173,14 +177,17 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
   limpeza.unref();
   return {
     async controlar(entrada) {
+      conferirServicoAberto();
       if (Buffer.byteLength(JSON.stringify(entrada)) > 4096) throw new Error('Operação de ditado excede o limite.');
       if (!entrada || Object.keys(entrada).some(chave => !['acao', 'sessao', 'destino'].includes(chave))) throw new Error('Operação de ditado inválida.');
       if (entrada.acao === 'iniciar') {
         if (entrada.sessao) throw new Error('Início não aceita sessão externa.');
         const original = await conferirDestino(entrada.destino);
+        conferirServicoAberto();
         if ([...sessoes.values()].some(item => !item.fim)) throw new Error('Já existe um ditado ativo.');
-        motorPreparado ??= obterMotor().catch(erro => { motorPreparado = null; throw erro; });
+        motorPreparado ??= prepararMotor().catch(erro => { motorPreparado = null; throw erro; });
         const motor = await motorPreparado;
+        conferirServicoAberto();
         if ([...sessoes.values()].some(item => !item.fim)) throw new Error('Já existe um ditado ativo.');
         const id = crypto.randomUUID();
         const sessao = { destino: structuredClone(entrada.destino), original, estado: 'iniciando', contato: Date.now(), cancelado: false };
@@ -201,7 +208,12 @@ export function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new
       }
       return resultado;
     },
-    fechar() { globalThis.clearInterval(limpeza); for (const sessao of sessoes.values()) parar(sessao, true); }
+    fechar() {
+      if (encerrado) return;
+      encerrado = true;
+      globalThis.clearInterval(limpeza);
+      for (const sessao of sessoes.values()) parar(sessao, true);
+    }
   };
 }
 

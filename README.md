@@ -10,7 +10,7 @@ Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop 
 
 ## Instalação rápida em outro PC
 
-A fonte local está na versão 0.5.0, com cópia das respostas, painel lateral padrão, chat opcional e os formatos adicionais. O instalador publicado abaixo continua na versão 0.3.5. A cópia local inclui um catálogo pronto atualizado; construir e instalar a fonte não comprova recarga de um painel já aberto.
+A fonte local está na versão 0.5.1, com correções de encerramento do ditado, paginação concorrente e confirmação de apresentação, além de cópia das respostas, painel lateral padrão, chat opcional e formatos adicionais. O instalador publicado abaixo continua na versão 0.3.5. A cópia local inclui um catálogo pronto atualizado; construir e instalar a fonte não comprova recarga de um painel já aberto.
 
 1. Instale o Codex desktop e [Node.js 24 ou superior](https://nodejs.org/en/download).
 2. Na página do projeto no GitHub, abra **Releases** e baixe **perguntas-decisoes-instalar-0.3.5.zip**.

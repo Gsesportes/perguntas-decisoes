@@ -1,4 +1,4 @@
-import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega, perguntasVisiveis } from './formulario.mjs';
+import { POR_PAGINA, validarRascunho, rascunhoVazio, montarEntrega, perguntasVisiveis, migrarPaginacao } from './formulario.mjs';
 import { criarDitadoInterface } from './ditado-interface.mjs';
 import { verificarResposta } from './formatos.mjs';
 import { montarControleFormato, montarBarra, montarEstrelas } from './controles-formatos.mjs';
@@ -47,6 +47,7 @@ export function montarInterface(raiz, adaptador) {
   let erroSalvamento = null;
   let conflitoPendente = false;
   const controlesPendentes = new Set();
+  let paginaPendente = false;
   let geraisPendentes = false;
   let salvamentosPendentes = 0;
   let carregamentoPendente = null;
@@ -152,9 +153,10 @@ export function montarInterface(raiz, adaptador) {
   }
   function atualizarControlesConciliados() {
     if (ditando || !atual) return;
-    if (controlesPendentes.size) desenharPagina(true, controlesPendentes);
+    if (controlesPendentes.size || paginaPendente) desenharPagina(true, controlesPendentes);
     if (geraisPendentes) obter('#pd-observacoes-gerais').value = atual.rascunho.gerais;
     controlesPendentes.clear();
+    paginaPendente = false;
     geraisPendentes = false;
   }
   function conferirLeitura(origem, leitura) {
@@ -173,7 +175,7 @@ export function montarInterface(raiz, adaptador) {
       const campo = primeiro.campo === 'gerais' ? 'observações gerais' : `${primeiro.campo === 'observacoes' ? 'observação' : 'resposta'} de “${pergunta?.texto ?? primeiro.pergunta}”`;
       throw new Error(`A ${campo} foi alterada de formas diferentes em duas abas. Escolha abaixo qual preenchimento manter; suas alterações continuam nesta tela.`);
     }
-    return validarRascunho(origem.formulario, resultado.rascunho).rascunho;
+    return validarRascunho(origem.formulario, migrarPaginacao(origem.formulario, resultado.rascunho)).rascunho;
   }
   async function gravarConfirmado(origem, versaoAnterior, rascunho) {
     const versao = await adaptador.salvar(origem.id, versaoAnterior, rascunho);
@@ -216,7 +218,8 @@ export function montarInterface(raiz, adaptador) {
         origem.rascunhoServidor = structuredClone(confirmado);
         origem.baseLocalConfirmada = preenchimento;
         const anterior = origem.rascunho;
-        origem.rascunho = conciliarRascunhos(preenchimento, anterior, confirmado, { preferirLocal: true }).rascunho;
+        origem.rascunho = migrarPaginacao(origem.formulario, conciliarRascunhos(preenchimento, anterior, confirmado, { preferirLocal: true }).rascunho);
+        paginaPendente ||= anterior.pagina !== origem.rascunho.pagina;
         for (const id of perguntasAlteradas(anterior, origem.rascunho)) controlesPendentes.add(id);
         if (anterior.gerais !== origem.rascunho.gerais) geraisPendentes = true;
         atualizarControlesConciliados();
@@ -468,8 +471,7 @@ export function montarInterface(raiz, adaptador) {
       if (manterLocal) {
         const meta = conferirLeitura(origem, leitura);
         const preenchimento = structuredClone(origem.rascunho);
-        const conciliado = conciliarRascunhos(origem.rascunhoServidor, preenchimento, meta.rascunho, { preferirLocal: true }).rascunho;
-        validarRascunho(origem.formulario, conciliado);
+        const conciliado = validarRascunho(origem.formulario, migrarPaginacao(origem.formulario, conciliarRascunhos(origem.rascunhoServidor, preenchimento, meta.rascunho, { preferirLocal: true }).rascunho)).rascunho;
         origem.versao = await gravarConfirmado(origem, meta.versao, conciliado);
         origem.baseLocalConfirmada = preenchimento; origem.rascunhoServidor = structuredClone(conciliado); origem.rascunho = conciliado;
         conflitoPendente = false; erroSalvamento = null; mostrarErro(''); desenharPagina(); obter('[data-estado]').textContent = 'Progresso guardado';
@@ -546,7 +548,7 @@ export function montarInterface(raiz, adaptador) {
     }
     atual = { id: resultado.structuredContent.id, versao: meta.versao, formulario: meta.formulario, rascunho: structuredClone(meta.rascunho ?? rascunhoVazio()) };
     atual.baseLocalConfirmada = structuredClone(atual.rascunho); atual.rascunhoServidor = structuredClone(atual.rascunho);
-    conflitoPendente = false; controlesPendentes.clear(); geraisPendentes = false;
+    conflitoPendente = false; controlesPendentes.clear(); paginaPendente = false; geraisPendentes = false;
     entregue = false; entregaPreparada = meta.preparacao ? { ...meta.preparacao, versao: meta.versao } : null; erroSalvamento = null; preparacaoPendente = false;
     if (recebidos.has(atual.id)) { entregue = true; entregaPreparada = { token: recebidos.get(atual.id), versao: meta.versao }; }
     obter('[data-titulo]').textContent = atual.formulario.titulo;

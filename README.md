@@ -6,9 +6,11 @@ Plugin local para reunir perguntas e classificações no painel lateral do Codex
 
 ## Requisitos
 
-Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop com plugins, MCP Apps e OpenAI Extensions. A sintaxe de instalação foi conferida na CLI 0.160.0. ChatGPT web, celular e nuvem não integram esta versão; outros anfitriões podem oferecer apenas parte das entregas.
+Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop com plugins, MCP Apps e OpenAI Extensions. A instalação e o início do MCP foram conferidos na CLI 0.162.0-alpha.17.2. ChatGPT web, celular e nuvem não integram esta versão; outros anfitriões podem oferecer apenas parte das entregas.
 
 ## Instalação rápida em outro PC
+
+A fonte local está na versão 0.5.1, com correções de encerramento do ditado, paginação concorrente e confirmação de apresentação, além de cópia das respostas, painel lateral padrão, chat opcional e formatos adicionais. O instalador publicado abaixo continua na versão 0.3.5. A cópia local inclui um catálogo pronto atualizado; construir e instalar a fonte não comprova recarga de um painel já aberto.
 
 1. Instale o Codex desktop e [Node.js 24 ou superior](https://nodejs.org/en/download).
 2. Na página do projeto no GitHub, abra **Releases** e baixe **perguntas-decisoes-instalar-0.3.5.zip**.
@@ -17,7 +19,7 @@ Windows, Node.js 24 ou superior disponível pelo comando `node` e Codex desktop 
 
 O pacote está construído e não exige npm ou compilação. O instalador confere os requisitos, conserva o catálogo na pasta local do perfil e registra o plugin e seu servidor. Não reinicia o aplicativo e não apaga rascunhos. Se faltar Node ou Codex, mostra a causa e encerra.
 
-Uma aba antiga da ferramenta precisa ser fechada e aberta novamente. Para conferir os requisitos sem instalar, execute `Instalar.cmd --verificar`.
+Instalar arquivos não confirma que uma conexão já aberta carregou a versão nova. Fechar somente a aba pode não atualizar o servidor. Para conferir os requisitos sem instalar, execute `Instalar.cmd --verificar`.
 
 Se houver um catálogo do mesmo plugin registrado em outra pasta, a instalação para de forma visível para preservar o registro existente. Esse caso requer o fluxo de atualização da instalação anterior.
 
@@ -28,38 +30,26 @@ Abra um terminal na pasta do projeto:
 ```powershell
 node --version
 npm ci
+npm run sincronizar:catalogo
 npm run verificar
-npm run package:desktop
 npm run verificar:desktop
 ```
 
-O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, duas ferramentas visíveis e retomada. Isso não comprova abertura ou entrega na interface nativa.
+O diagnóstico inicia o comando do próprio manifesto com banco isolado. Confere protocolo, quatro ferramentas visíveis, recursos lateral e no chat e retomada do mesmo formulário. A cópia fica privada da interface. Isso não comprova abertura ou entrega na interface nativa. Ao alterar a fonte, sincronize novamente o catálogo antes de distribuir; uma divergência causa falha visível na conferência.
 
 ## Instalar no Codex
 
-Depois de construir:
+Depois de construir, no Windows:
 
 ```powershell
-codex plugin marketplace add ./pacote
-codex plugin add perguntas-decisoes@perguntas-decisoes-local
+node scripts/instalar-desktop.mjs
 ```
 
-Os comandos registram o catálogo e instalam no seu perfil. Se `codex plugin` não existir, use a CLI compatível fornecida pelo aplicativo. O projeto não inclui nem altera o executável do Codex.
+O instalador usa a CLI compatível fornecida pelo aplicativo, registra o catálogo e instala no perfil. O projeto não inclui nem altera o executável do Codex.
 
-No Windows, este bloco usa diretamente a CLI do aplicativo e registra o servidor local para novas conexões:
+Na fonte em validação, os componentes ficam em `%LOCALAPPDATA%/PerguntasDecisoes/componentes/<versão>`. O plugin fornece seu próprio servidor MCP, cujo capturador usa essa cópia fora do cache descartável. O instalador não cria uma segunda conexão global para a mesma ferramenta. Atualizar conserva componentes anteriores para conexões que ainda os utilizam. Não são respostas nem histórico de áudio. A correção ainda não integra o ZIP público 0.3.5.
 
-```powershell
-$motorPlugin = Get-ChildItem -LiteralPath "$env:LOCALAPPDATA\OpenAI\Codex\bin" -Filter codex.exe -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
-if (-not $motorPlugin) { throw 'A CLI do Codex desktop não foi encontrada.' }
-& $motorPlugin plugin marketplace add ./pacote
-if ($LASTEXITCODE -ne 0) { throw 'Não consegui registrar o catálogo.' }
-$instalacaoPlugin = (& $motorPlugin plugin add perguntas-decisoes@perguntas-decisoes-local --json) | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) { throw 'Não consegui instalar o plugin.' }
-$servidorPlugin = Join-Path $instalacaoPlugin.installedPath 'server/servidor.mjs'
-& $motorPlugin mcp add perguntas_decisoes_local -- node $servidorPlugin
-```
-
-O vínculo fica na configuração local do seu computador. Seu caminho não faz parte do pacote distribuído. O catálogo pronto usa os mesmos comandos de registro a partir da pasta extraída, sem etapa de construção.
+Os caminhos do perfil são resolvidos no computador; nenhum caminho pessoal faz parte do pacote distribuído. No catálogo pronto, `Instalar.cmd` executa esse mesmo instalador a partir da pasta extraída, sem etapa de construção. Uma versão existente com conteúdo diferente é recusada, preservando seus arquivos; alterações dos componentes precisam de nova versão.
 
 Selecione **Perguntas e decisões** no menu `@` da conversa. Para abrir manualmente: **Ferramentas → Mais ferramentas → Plugins e MCPs → Perguntas e decisões**. A localização do menu depende da versão do aplicativo.
 
@@ -92,7 +82,15 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 ## Preencher e entregar
 
 - Seis perguntas por página. Anterior conserva conteúdo; Próximo exige respostas da página.
-- Sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora.
+- O painel lateral é a apresentação padrão. Quando solicitado, criar_formulario_no_chat e abrir_no_chat usam a apresentação dentro da conversa. Abrir pelo mesmo ID conserva respostas e observações; não cria outro formulário. Avisos de modo não confirmado permanecem visíveis até o aplicativo confirmar a apresentação.
+- **Copiar respostas** na última página coloca o conjunto completo na área de transferência, sem enviar nem encerrar o formulário. O botão também aparece na tela final, depois de enviar, inserir anotação ou anexar TXT. O texto final fica somente na memória dessa tela e é descartado ao carregar outro formulário; o rascunho continua sendo removido do banco após a entrega. A área de transferência conserva o texto até outra cópia substituí-lo.
+- A cópia usa a permissão do navegador quando disponível. No Windows, uma integração local privada cobre a recusa do navegador e confere o texto escrito. A interface informa essa via; falhas não são apresentadas como sucesso.
+- Sim/não, escolha única, múltipla, texto, nota, escala, número, data e hora; a partir da fonte 0.4.0, também tabela, ordenação, imagens, pontos, intervalo e lista.
+- Data_hora reúne duas colunas, Data e Hora, na mesma pergunta, com uma observação comum. A partir de 0.4.5, valores inválidos são recusados durante a edição e uma parte válida pode ser guardada enquanto a outra está pendente. A entrega exige as duas. Não há conversão para UTC ou adição de fuso.
+- Ordenação aguarda a confirmação do salvamento antes de mostrar sucesso e conserva a indicação ao reabrir. Pontos mostram o saldo e atualizam o máximo por critério; uma digitação acima do saldo é recusada imediatamente, com aviso e manutenção do último valor aceito.
+- Desde 0.4.6, uma versão antiga é conferida e alterações em campos independentes são combinadas, com uma única nova tentativa. Alterações diferentes na mesma resposta pedem sua escolha no painel; nenhum preenchimento concorrente é substituído automaticamente.
+- Intervalo limita mínimo e máximo entre si durante a edição. Uma nova inversão é recusada com aviso e manutenção do valor anterior. Rascunhos antigos invertidos ficam preservados para correção; ao avançar, o aviso indica a faixa inválida ou o limite que falta.
+- Estrelas ficam em sequência clicável, preenchem até a nota escolhida e mostram o resumo numérico abaixo. A escolha continua sendo um número e observações permanecem livres.
 - Alternativas visíveis em um clique; observações individuais e gerais opcionais.
 - Entregas somente na última página.
 - **Enviar ao chat:** solicita mensagem com o conjunto completo.
@@ -102,6 +100,71 @@ Bytes não são tokens. Interface construída e rascunhos não são repetidos na
 - Trocas durante salvamento ou entrega aguardam a operação original. Não há seleção automática de outra conversa principal.
 - Conflitos entre janelas conservam o texto local e oferecem duas escolhas explícitas: usar a versão salva ou guardar seu preenchimento sobre a versão atual. A confirmação perdida de uma preparação é conferida por sua chave antes de retomar.
 - A lista oferece cem pendentes por vez e **Carregar mais formulários**.
+
+## Formatos adicionais na fonte 0.4.2
+
+Os nove tipos anteriores e seus rascunhos são preservados. Os formatos novos, apresentações e condições exigem servidor e painel 0.4.0. O servidor novo consulta formulários legados e avançados; conexões antigas não recebem os avançados para evitar controles incorretos. Essa evolução ainda não integra o ZIP público 0.3.5.
+
+Classificação compacta, com observação e microfone por item, seis itens por página:
+
+```json
+{"titulo":"Classificar itens","tipo":"tabela","opcoes":["Aprovar","Ajustar","Rejeitar"],"perguntas":["Item A","Item B","Item C"]}
+```
+
+Exemplos de objetos para a lista `perguntas`:
+
+```json
+[
+  {"texto":"Classifique este grupo","tipo":"tabela","itens":["Item A","Item B"],"opcoes":["Aprovar","Ajustar"]},
+  {"texto":"Ordene as prioridades","tipo":"ordenacao","opcoes":["Clareza","Qualidade","Velocidade"]},
+  {"texto":"Escolha a imagem","tipo":"imagens","opcoes":[{"texto":"Ícone","imagem":"assets/icone-128.png"},{"texto":"Logo","imagem":"assets/logo-verde.png"}]},
+  {"texto":"Distribua a importância","tipo":"pontos","itens":["Clareza","Velocidade"],"total":100},
+  {"texto":"Duração aceitável","tipo":"intervalo","min":0,"max":60,"unidade":"minutos"},
+  {"texto":"Adicione sugestões","tipo":"lista","min_itens":1,"max_itens":20},
+  {"texto":"Avalie com estrelas","tipo":"nota","visual":"estrelas"},
+  {"texto":"Avalie com emojis","tipo":"escala","visual":"emojis"},
+  {"texto":"Escolha na barra","tipo":"escala","visual":"barra","min":0,"max":100}
+]
+```
+
+- Tabela agrupada expande cada item em uma pergunta, com IDs `pN_iM`; a forma curta conserva `pN`. Até 200 linhas por grupo e 1000 perguntas no formulário completo.
+- Ordenação aceita de 2 a 100 alternativas distintas. Mova com Subir/Descer ou confirme a ordem apresentada; a ordem inicial não conta como resposta automática.
+- Imagens aceitam de 2 a 20 alternativas. Cada imagem local deve ter até 1 MiB e formato PNG, JPEG ou WebP confirmado pelos bytes. A leitura privada usa somente referências declaradas naquele formulário; erro é visível. URLs remotas não são aceitas na versão local.
+- Pontos aceitam de 2 a 30 critérios. O total padrão é 100, inteiro entre 1 e 1000000. Rascunhos parciais podem ser guardados; a entrega exige soma exata. Valores não distribuídos são zero.
+- Intervalo permite guardar um extremo sozinho ou uma faixa ainda invertida; para entregar, preencha os dois valores com mínimo menor ou igual ao máximo, dentro dos limites e passo.
+- Lista aceita de 1 a 200 entradas, com padrão máximo de 50 e até 2000 caracteres por entrada. Linhas vazias são preservadas no rascunho e excluídas da entrega conforme o aviso do controle.
+- Estrelas usam valores inteiros até dez, com padrão de 1 a 5; emojis usam cinco níveis de 1 a 5. Barra permite mais valores conforme min/max/passo, sem preencher resposta automaticamente.
+- Parâmetros incompatíveis são recusados, em vez de produzir uma pergunta diferente silenciosamente.
+
+Pergunta condicional, usando referência estável à pergunta anterior:
+
+```json
+{"perguntas":[{"texto":"Quer detalhar?","tipo":"sim_nao"},{"texto":"Descreva o detalhe","se":{"pergunta":"p1","igual":"Sim"}}]}
+```
+
+Condições podem consultar escolha simples, múltipla, imagens, notas, escalas ou números. Na seleção múltipla, a condição verifica se a opção está marcada. Perguntas ocultas conservam preenchimento no rascunho e ficam fora de pendências, progresso e entrega; ao reaparecer, recuperam o texto. A origem de uma condição também precisa estar visível. Referências futuras, ao próprio campo e valores incompatíveis são recusados. A numeração dos itens permanece estável; a paginação considera somente perguntas visíveis.
+
+Durante ditado, destino, perguntas que controlam condições, navegação e entrega permanecem protegidos. Outros campos e os controles seguros de edição de respostas podem ser usados. Observações continuam opcionais e livres em todos os formatos.
+
+## Ditado local nos campos
+
+Implementação em validação: a fala humana já produziu texto em resposta, observação individual e observações gerais no painel nativo, com entrega do conjunto ao chat. A fonte 0.3.6-ditado.6 acrescenta indicação animada, edição dos outros campos durante o processamento e até quatro tarefas de reconhecimento com o mesmo modelo; essas mudanças ainda dependem de prova na interface atualizada. Os botões usam reconhecimento local; a integração com o ditado nativo do Codex ainda não foi comprovada. O ZIP público 0.3.5 não contém esta evolução.
+
+No Windows, respostas de texto, observações individuais e observações gerais têm um pequeno botão de microfone dentro do campo. Clique, aguarde o quadrado de parada com pulso e fale. Clique novamente para parar e transcrever; o limite por trecho é de sessenta segundos. O indicador giratório informa início, parada solicitada e processamento. O botão × ou a tecla Esc descarta o trecho. Depois de confirmar o início, outros campos continuam editáveis; o destino, a navegação e a entrega aguardam o ditado. A fala reconhecida é acrescentada ao texto existente e permanece editável antes da entrega.
+
+Prepare o reconhecimento uma vez por computador, pela fonte:
+
+```powershell
+npm run preparar:ditado
+```
+
+No catálogo instalado, também pode ser executado o arquivo `server/preparar-ditado.mjs` com `node --use-system-ca`. O preparo baixa o motor CPU whisper.cpp v1.9.2 e o modelo Whisper base multilíngue, cerca de 150 MB, verificando os hashes. Não usa chave de API ou cobrança por minuto. Motor e modelo ficam em `%LOCALAPPDATA%/PerguntasDecisoes/voz` e conservam suas licenças MIT.
+
+O reconhecimento usa português e roda no computador. Áudio passa somente por memória e canais locais entre processos, sem WAV temporário ou envio à internet. Texto reconhecido passa a integrar o rascunho existente; falhas e conflitos preservam o campo e aparecem na interface. A navegação e a entrega aguardam o término do ditado. Os comandos intermediários são privados do painel.
+
+O ditado nativo do editor do Codex não foi encontrado como capacidade pública para plugins na [referência oficial](https://developers.openai.com/plugins/reference). Esta implementação usa reconhecimento próprio; não apresenta esse motor como o recurso nativo do aplicativo.
+
+Fontes do motor e modelo: [whisper.cpp](https://github.com/ggml-org/whisper.cpp/tree/v1.9.2), [Whisper](https://github.com/openai/whisper).
 
 ## Armazenamento e limites
 

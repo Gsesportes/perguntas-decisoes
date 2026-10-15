@@ -1,10 +1,12 @@
 import { montarInterface } from './interface.mjs';
 import { FORMULARIO_EXEMPLO, RASCUNHO_EXEMPLO } from './exemplo.mjs';
 import { montarEntrega, migrarPaginacao } from './formulario.mjs';
+import { copiarTexto } from './copia.mjs';
 
 const id = 'exemplo-interface-v2';
 const estadosProprios = new Set();
 const adaptador = {
+  copiar: texto => copiarTexto(texto),
   origem: 'Demonstração com perguntas fictícias · comece sem respostas selecionadas',
   conexao: 'Enviar ao chat usa a conversa quando o aplicativo oferece esse recurso. Anotação e arquivo exigem o plugin conectado; ficam indisponíveis aqui.',
   capacidades: () => ({ chat: typeof window.openai?.sendFollowUpMessage === 'function', anotacao: false, arquivo: false }),

@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 export async function avisosTerceiros(raiz) {
   const lock = JSON.parse(await readFile(new URL('package-lock.json', raiz), 'utf8'));
   const blocos = ['Licenças e atribuições das dependências de execução\nAs licenças próprias das bibliotecas permanecem aplicáveis.'];
+  blocos.push('Heroicons 2.2.0 — ícone Star\nOrigem: https://github.com/tailwindlabs/heroicons/tree/v2.2.0\n' + await readFile(new URL('docs/licencas/heroicons-LICENSE.md', raiz), 'utf8'));
   for (const [caminho, pacote] of Object.entries(lock.packages).sort(([a], [b]) => a.localeCompare(b))) {
     if (!caminho || pacote.dev) continue;
     const pasta = new URL(caminho + '/', raiz);

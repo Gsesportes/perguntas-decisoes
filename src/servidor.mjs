@@ -1,17 +1,20 @@
 import { normalizarFormulario, rascunhoVazio, validarRascunho, montarEntrega, migrarPaginacao, ErroFormulario, TIPOS, validarTamanhoChamada } from './formulario.mjs';
+import { VERSAO_PLUGIN } from './versao.mjs';
 import { Repositorio } from './repositorio.mjs';
 import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/cfworker';
+import { RECURSOS_INTERFACE, lerRecursoInterface, URI_INTERFACE, URI_INTERFACE_LEGADA, URI_INTERFACE_CHAT } from './exibicao.mjs';
 
-export const URI_INTERFACE = 'ui://perguntas-decisoes/painel';
-const esquemaPergunta = { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } }, min: { type: 'number' }, max: { type: 'number' }, passo: { type: 'number' } }, required: ['texto'], additionalProperties: false }] };
+export { URI_INTERFACE, URI_INTERFACE_LEGADA, URI_INTERFACE_CHAT };
+const esquemaPergunta = { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, imagem: { type: 'string' } }, required: ['texto', 'imagem'], additionalProperties: false }] } }, min: { type: 'number' }, max: { type: 'number' }, passo: { type: 'number' }, itens: { type: 'array', items: { type: 'string' } }, total: { type: 'integer' }, unidade: { type: 'string' }, min_itens: { type: 'integer' }, max_itens: { type: 'integer' }, visual: { enum: ['botoes', 'estrelas', 'emojis', 'barra'] }, se: { type: 'object', properties: { pergunta: { type: 'string' }, igual: { type: ['string', 'number'] } }, required: ['pergunta', 'igual'], additionalProperties: false } }, required: ['texto'], additionalProperties: false }] };
 const objeto = properties => ({ type: 'object', properties, additionalProperties: false });
 const leitura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const alteracao = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 const ui = { ui: { resourceUri: URI_INTERFACE } };
+const uiChat = { ui: { resourceUri: URI_INTERFACE_CHAT } };
 const privada = { ui: { visibility: ['app'] } };
 
 export const FERRAMENTAS = [
-  { name: 'criar_formulario', title: 'Responder perguntas', description: 'Cria perguntas e abre a aba lateral. Não selecione chats nem ative janelas para abrir ou verificar. Tipos: texto, sim_nao, unica, multipla, nota, escala, numero, data, hora. Tipo/opções comuns, observações e páginas automáticas.', inputSchema: { ...objeto({ titulo: { type: 'string' }, perguntas: { type: 'array', items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } } }), required: ['perguntas'] }, annotations: alteracao, _meta: ui },
+  { name: 'criar_formulario', title: 'Responder perguntas', description: 'Cria no painel lateral sem mudar de chat. Observações e páginas automáticas. tabela/pontos usam itens; ordenacao usa opcoes; imagens usa opcoes [{texto,imagem local}]; visual muda notas; se {pergunta:p1,igual:valor} condiciona. Tipo/opções comuns opcionais.', inputSchema: { ...objeto({ titulo: { type: 'string' }, perguntas: { type: 'array', items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } } }), required: ['perguntas'] }, annotations: alteracao, _meta: ui },
   { name: 'abrir_painel', title: 'Perguntas e decisões', description: 'Abre a aba lateral; pelo id retoma um formulário, sem id lista pendentes. Preserve o chat principal: não navegue nem ative janelas para abrir ou verificar.', inputSchema: objeto({ id: { type: 'string' } }), annotations: leitura, _meta: { ...ui, 'openai/ui': { entrypoints: [{ type: 'thread' }, { type: 'global' }] } } },
   { name: 'ler_formulario', inputSchema: { ...objeto({ id: { type: 'string' } }), required: ['id'] }, annotations: leitura, _meta: privada },
   { name: 'listar_pendentes', inputSchema: objeto({ cursor: { ...objeto({ criado_em: { type: 'string', minLength: 1, maxLength: 100 }, id: { type: 'string', minLength: 1, maxLength: 100 } }), required: ['criado_em', 'id'] } }), annotations: leitura, _meta: privada },
@@ -21,6 +24,11 @@ export const FERRAMENTAS = [
   { name: 'retomar_edicao', inputSchema: { ...objeto({ id: { type: 'string' }, token: { type: 'string' } }), required: ['id', 'token'] }, annotations: alteracao, _meta: privada }
 ];
 
+// Os dois comandos opcionais compartilham todos os formatos atuais.
+FERRAMENTAS.splice(2, 0,
+  { ...FERRAMENTAS[0], name: 'criar_formulario_no_chat', title: 'Responder no chat', description: 'Cria dentro da conversa somente quando solicitado; mesmos formatos, observações e paginação do painel.', _meta: uiChat },
+  { ...FERRAMENTAS[1], name: 'abrir_no_chat', title: 'Abrir no chat', description: 'Abre no chat quando solicitado; id retoma, sem id lista pendentes. Preserve a conversa principal.', _meta: uiChat }
+);
 const esquemasEntrada = new CfWorkerJsonSchemaValidator();
 const validadoresEntrada = new Map(FERRAMENTAS.map(ferramenta => [ferramenta.name, esquemasEntrada.getValidator(ferramenta.inputSchema)]));
 const mensagensObrigatorias = {
@@ -46,11 +54,13 @@ function validarEntradaFerramenta(nome, entrada) {
 }
 
 function paraInterface(registro) {
-  return { content: [], structuredContent: { id: registro.id, total: registro.formulario.perguntas.length }, _meta: { formulario: registro.formulario, rascunho: migrarPaginacao(registro.formulario, registro.rascunho), versao: registro.versao, preparacao: registro.entrega } };
+  return { content: [], structuredContent: { id: registro.id, total: registro.formulario.perguntas.length }, _meta: { formulario: registro.formulario, rascunho: migrarPaginacao(registro.formulario, registro.rascunho), versao: registro.versao, preparacao: registro.entrega, versao_plugin: VERSAO_PLUGIN } };
 }
 
 export async function chamarFerramenta(nome, entrada, dono, banco) {
   validarEntradaFerramenta(nome, entrada);
+  if (nome === 'criar_formulario_no_chat') nome = 'criar_formulario';
+  if (nome === 'abrir_no_chat') nome = 'abrir_painel';
   const repositorio = new Repositorio(banco);
   if (nome === 'criar_formulario') return paraInterface(await repositorio.criar(dono, normalizarFormulario(entrada), rascunhoVazio()));
   if (nome === 'abrir_painel') {
@@ -100,13 +110,16 @@ export async function atenderMcp(request, env, interfaceHtml) {
   const responder = result => json({ jsonrpc: '2.0', id: chamada.id, result });
   if (chamada.method === 'initialize') {
     const suportados = ['2025-03-26', '2025-06-18', '2025-11-25', '2026-07-28'];
-    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.1.0' } });
+    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: VERSAO_PLUGIN } });
   }
   if (chamada.method === 'ping') return responder({});
   if (chamada.method === 'tools/list') return responder({ tools: FERRAMENTAS });
-  if (chamada.method === 'resources/list') return responder({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] });
+  if (chamada.method === 'resources/list') return responder({ resources: RECURSOS_INTERFACE });
   if (chamada.method === 'resources/templates/list') return responder({ resourceTemplates: [] });
-  if (chamada.method === 'resources/read' && chamada.params?.uri === URI_INTERFACE) return responder({ contents: [{ uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app', text: interfaceHtml, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] });
+  if (chamada.method === 'resources/read') {
+    try { return responder({ contents: [lerRecursoInterface(interfaceHtml, chamada.params?.uri)] }); }
+    catch (erro) { return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32602, message: erro.message } }); }
+  }
   if (chamada.method !== 'tools/call') return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32601, message: 'Método não encontrado.' } });
   const dono = request.headers.get('oai-authenticated-user-id');
   if (!dono) return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32001, message: 'Entre na sua conta para acessar formulários.' } }, 401);
@@ -116,6 +129,6 @@ export async function atenderMcp(request, env, interfaceHtml) {
     return responder(result);
   } catch (erro) {
     if (!(erro instanceof ErroFormulario)) console.error('Falha no serviço de formulários:', erro.message);
-    return responder({ isError: true, content: [{ type: 'text', text: erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento. O recebimento ou salvamento não foi confirmado.' }] });
+    return responder({ isError: true, ...(erro instanceof ErroFormulario ? { _meta: { codigo_erro: erro.codigo } } : {}), content: [{ type: 'text', text: erro instanceof ErroFormulario ? erro.message : 'Falha no armazenamento. O recebimento ou salvamento não foi confirmado.' }] });
   }
 }

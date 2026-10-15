@@ -10,9 +10,9 @@ import { configuracaoMcp } from './configuracao-mcp.mjs';
 const raiz = new URL('../', import.meta.url);
 const raizPacote = process.env.PERGUNTAS_PACOTE_INSTALADO ?? fileURLToPath(new URL('pacote/plugins/perguntas-decisoes/', raiz));
 const manifesto = JSON.parse(await readFile(join(raizPacote, 'plugin.json'), 'utf8'));
-const configuracao = await configuracaoMcp(raizPacote);
 const caminhoDados = fileURLToPath(new URL(`.local/verificacao/${crypto.randomUUID()}/`, raiz));
 await mkdir(caminhoDados, { recursive: true });
+const configuracao = await configuracaoMcp(raizPacote, { diretorioDados: caminhoDados });
 async function conectar() {
   const transporte = new StdioClientTransport({ ...configuracao, env: { ...process.env, PERGUNTAS_DIRETORIO_DADOS: caminhoDados }, stderr: 'pipe' });
   let diagnostico = '';
@@ -24,12 +24,13 @@ async function conectar() {
 }
 let cliente = await conectar();
 try {
+  assert.equal(cliente.getServerVersion().version, manifesto.version, 'Versão do servidor diferente do manifesto.');
   const ferramentas = await cliente.listTools();
   const visiveis = ferramentas.tools.filter(ferramenta => ferramenta._meta?.ui?.visibility?.[0] !== 'app');
-  assert.equal(visiveis.length, 2);
+  assert.equal(visiveis.length, 4);
   const abertura = ferramentas.tools.find(ferramenta => ferramenta.name === 'abrir_painel');
   assert.equal(abertura.title, 'Perguntas e decisões');
-  assert.equal(abertura._meta.ui.resourceUri, 'ui://perguntas-decisoes/painel');
+  assert.equal(abertura._meta.ui.resourceUri, `ui://perguntas-decisoes/${manifesto.version}/painel`);
   const metadados = OpenAIUiToolMetadataSchema.parse(abertura._meta['openai/ui']);
   assert.ok(metadados.entrypoints.some(item => item.type === 'thread'));
   const painelVazio = await cliente.callTool({ name: 'abrir_painel', arguments: {} });
@@ -37,14 +38,23 @@ try {
   const criado = await cliente.callTool({ name: 'criar_formulario', arguments: { titulo: 'Integração local — verificação', perguntas: [{ texto: 'O formulário local abre?', tipo: 'sim_nao' }] } });
   assert.equal(criado.isError, undefined);
   const id = criado.structuredContent.id;
-  const leitura = await cliente.readResource({ uri: 'ui://perguntas-decisoes/painel' });
+  const leitura = await cliente.readResource({ uri: abertura._meta.ui.resourceUri });
   assert.equal(leitura.contents[0].mimeType, 'text/html;profile=mcp-app');
   assert.ok(leitura.contents[0].text.includes('perguntas-decisoes-app'));
+  assert.ok(leitura.contents[0].text.includes(manifesto.version), 'A interface não contém a versão atual do pacote.');
+  assert.equal(leitura.contents[0]._meta['openai/ui'].preferredDisplayMode, 'fullscreen');
+  assert.deepEqual(leitura.contents[0]._meta.ui.permissions, { clipboardWrite: {} });
+  const uriChat = `ui://perguntas-decisoes/${manifesto.version}/chat`;
+  const recursoChat = (await cliente.readResource({ uri: uriChat })).contents[0];
+  assert.equal(recursoChat._meta['openai/ui'].preferredDisplayMode, 'inline');
+  assert.ok(recursoChat.text.includes('data-apresentacao="chat"'));
+  assert.equal(ferramentas.tools.find(item => item.name === 'criar_formulario_no_chat')._meta.ui.resourceUri, uriChat);
+  assert.ok(ferramentas.tools.find(item => item.name === 'copiar_respostas')._meta.ui.visibility.includes('app'));
   const salvo = await cliente.callTool({ name: 'salvar_rascunho', arguments: { id, versao: criado._meta.versao, rascunho: { respostas: { p1: 'Não' }, observacoes: { p1: 'Comentário da verificação local.' } } } });
   assert.equal(salvo.isError, undefined);
   await cliente.close();
   cliente = await conectar();
-  const reaberto = await cliente.callTool({ name: 'ler_formulario', arguments: { id } });
+  const reaberto = await cliente.callTool({ name: 'abrir_no_chat', arguments: { id } });
   assert.equal(reaberto._meta.rascunho.respostas.p1, 'Não');
   assert.equal(reaberto._meta.rascunho.observacoes.p1, 'Comentário da verificação local.');
   const painelReaberto = await cliente.callTool({ name: 'abrir_painel', arguments: {} });
@@ -68,5 +78,5 @@ try {
   const resultado = { data: new Date().toISOString(), transporte: 'stdio', pacote: manifesto.version, comandoDoManifesto: configuracao.command, ferramentasVisiveis: visiveis.length, ferramentasConferidas: ferramentas.tools.map(item => item.name), lote: 50, recursoInterface: 'text/html;profile=mcp-app', entradaPainelDeclarada: { titulo: abertura.title, tipo: 'thread', abreSemArgumentos: true }, persistenciaAposReiniciarProcessoDeTeste: true, limpezaRegistrosFicticios: true, entregasNaConversaTestadas: false, provaDesktopVisual: false, menuFerramentasComprovado: false };
   await mkdir(new URL('.local/diagnosticos/', raiz), { recursive: true });
   await writeFile(new URL('.local/diagnosticos/verificacao-desktop.json', raiz), JSON.stringify(resultado, null, 2));
-  console.log('Processo local verificado: inicialização, duas ferramentas visíveis, recurso de interface e retomada após reiniciar.');
+  console.log('Processo local verificado: quatro ferramentas visíveis, duas apresentações, cópia privada e retomada do mesmo formulário.');
 } finally { await cliente.close(); }

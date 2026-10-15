@@ -2983,7 +2983,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve2.call(this, root, ref);
+      let _sch = resolve4.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -3010,7 +3010,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve2(root, ref) {
+    function resolve4(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3840,7 +3840,7 @@ var require_fast_uri = __commonJS({
       }
       return uri2;
     }
-    function resolve2(baseURI, relativeURI, options) {
+    function resolve4(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -3873,49 +3873,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative, options, skipNormalization) {
+    function resolveComponent(base, relative3, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse3(serialize(base, options), options);
-        relative = parse3(serialize(relative, options), options);
+        relative3 = parse3(serialize(relative3, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+      if (!options.tolerant && relative3.scheme) {
+        target.scheme = relative3.scheme;
+        target.userinfo = relative3.userinfo;
+        target.host = relative3.host;
+        target.port = relative3.port;
+        target.path = removeDotSegments(relative3.path || "");
+        target.query = relative3.query;
       } else {
-        if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+        if (relative3.userinfo !== void 0 || relative3.host !== void 0 || relative3.port !== void 0) {
+          target.userinfo = relative3.userinfo;
+          target.host = relative3.host;
+          target.port = relative3.port;
+          target.path = removeDotSegments(relative3.path || "");
+          target.query = relative3.query;
         } else {
-          if (!relative.path) {
+          if (!relative3.path) {
             target.path = base.path;
-            if (relative.query !== void 0) {
-              target.query = relative.query;
+            if (relative3.query !== void 0) {
+              target.query = relative3.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+            if (relative3.path[0] === "/") {
+              target.path = removeDotSegments(relative3.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative.path;
+                target.path = "/" + relative3.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target.path = relative3.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative3.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative.query;
+            target.query = relative3.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3923,7 +3923,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
+      target.fragment = relative3.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -4209,7 +4209,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve2,
+      resolve: resolve4,
       resolveComponent,
       equal,
       serialize,
@@ -7200,6 +7200,7 @@ var require_dist = __commonJS({
 
 // src/servidor-desktop.mjs
 import { readFileSync as readFileSync2 } from "node:fs";
+import { join as join4 } from "node:path";
 
 // node_modules/zod/v4/core/util.js
 var util_exports = {};
@@ -10515,7 +10516,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve2) {
+function isRecursive(inst, stack, resolve4) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -10525,7 +10526,7 @@ function isRecursive(inst, stack, resolve2) {
   let result = NONE;
   const check = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve2);
+      const answer = isRecursive(child, stack, resolve4);
       if (answer > result)
         result = answer;
     }
@@ -10536,7 +10537,7 @@ function isRecursive(inst, stack, resolve2) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve4) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -10600,7 +10601,7 @@ function isRecursive(inst, stack, resolve2) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve4 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -15699,7 +15700,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+        await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -15716,7 +15717,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve4, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -15794,7 +15795,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve2(parseResult.data);
+            resolve4(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -16056,12 +16057,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve4, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve2, interval);
+      const timeoutId = setTimeout(resolve4, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -16937,12 +16938,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve2) => {
+    return new Promise((resolve4) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve2();
+        resolve4();
       } else {
-        this._stdout.once("drain", resolve2);
+        this._stdout.once("drain", resolve4);
       }
     });
   }
@@ -16957,9 +16958,7 @@ function tamanhoJson(valor) {
   return new TextEncoder().encode(JSON.stringify(valor)).length;
 }
 
-// src/formulario.mjs
-var TIPOS = ["sim_nao", "unica", "multipla", "texto", "nota", "escala", "numero", "data", "hora"];
-var POR_PAGINA = 6;
+// src/erros.mjs
 var ErroFormulario = class extends Error {
   constructor(mensagem, codigo = "entrada_invalida") {
     super(mensagem);
@@ -16967,6 +16966,183 @@ var ErroFormulario = class extends Error {
     this.codigo = codigo;
   }
 };
+
+// src/formatos.mjs
+var TIPOS = ["sim_nao", "unica", "multipla", "texto", "nota", "escala", "numero", "data", "hora", "tabela", "ordenacao", "imagens", "pontos", "intervalo", "lista", "data_hora"];
+var antigos = new Set(TIPOS.slice(0, 9));
+var numericos = /* @__PURE__ */ new Set(["nota", "escala", "numero", "intervalo"]);
+var visuais = ["botoes", "estrelas", "emojis", "barra"];
+function textoFormato(valor, nome, limite = 6e3) {
+  if (typeof valor !== "string" || !valor.trim() || valor.length > limite) throw new ErroFormulario(`${nome} deve conter texto de at\xE9 ${limite} caracteres.`);
+  return valor;
+}
+function listaTextos(valor, nome, minimo, maximo, distintos = false) {
+  if (!Array.isArray(valor) || valor.length < minimo || valor.length > maximo) throw new ErroFormulario(`${nome}: informe de ${minimo} a ${maximo} itens.`);
+  const resultado = valor.map((item) => textoFormato(item, nome, 300));
+  if (distintos && new Set(resultado).size !== resultado.length) throw new ErroFormulario(`${nome}: as alternativas devem ser distintas.`);
+  return resultado;
+}
+function condicao(valor) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor) || Object.keys(valor).some((chave) => !["pergunta", "igual"].includes(chave)) || typeof valor.pergunta !== "string" || !["string", "number"].includes(typeof valor.igual) || typeof valor.igual === "number" && !Number.isFinite(valor.igual)) throw new ErroFormulario("Condi\xE7\xE3o inv\xE1lida. Use pergunta e igual.");
+  return { pergunta: valor.pergunta, igual: valor.igual };
+}
+function normalizarPergunta(original, entrada, indice) {
+  const item = typeof original === "string" ? { texto: original } : original;
+  if (!item || typeof item !== "object" || Array.isArray(item)) throw new ErroFormulario(`Pergunta ${indice + 1} inv\xE1lida.`);
+  const tipo = item.tipo ?? entrada.tipo ?? "texto";
+  if (!TIPOS.includes(tipo)) throw new ErroFormulario(`Tipo inv\xE1lido na pergunta ${indice + 1}.`);
+  for (const [campo, permitidos] of [["itens", ["tabela", "pontos"]], ["opcoes", ["tabela", "unica", "multipla", "ordenacao", "imagens", "sim_nao"]], ["total", ["pontos"]], ["min_itens", ["lista"]], ["max_itens", ["lista"]], ["min", [...numericos]], ["max", [...numericos]], ["passo", [...numericos]], ["unidade", [...numericos]]]) if (item[campo] !== void 0 && !permitidos.includes(tipo)) throw new ErroFormulario(`O campo ${campo} n\xE3o pertence ao tipo ${tipo}.`);
+  const pergunta = { id: `p${indice + 1}`, texto: textoFormato(item.texto, `Pergunta ${indice + 1}`), tipo };
+  if (item.se !== void 0) pergunta.se = condicao(item.se);
+  if (item.visual !== void 0) {
+    if (!visuais.includes(item.visual) || !["nota", "escala", "numero"].includes(tipo)) throw new ErroFormulario("Apresenta\xE7\xE3o inv\xE1lida para esse tipo de pergunta.");
+    if (item.visual !== "botoes") pergunta.visual = item.visual;
+  }
+  if (tipo === "tabela") {
+    const opcoes = listaTextos(item.opcoes ?? entrada.opcoes, "Alternativas da tabela", 2, 10, true);
+    if (item.itens === void 0 && entrada.tipo === "tabela" && item.tipo === void 0) return [{ ...pergunta, tipo: "unica", opcoes, grupo: { id: "tabela", texto: entrada.titulo ?? "Classifica\xE7\xE3o" } }];
+    const itens = listaTextos(item.itens, "Itens da tabela", 1, 200);
+    return itens.map((texto2, posicao) => ({ id: `${pergunta.id}_i${posicao + 1}`, texto: texto2, tipo: "unica", opcoes: [...opcoes], grupo: { id: pergunta.id, texto: pergunta.texto }, ...pergunta.se ? { se: { ...pergunta.se } } : {} }));
+  }
+  if (tipo === "sim_nao") {
+    if (item.opcoes !== void 0 && JSON.stringify(item.opcoes) !== JSON.stringify(["Sim", "N\xE3o"])) throw new ErroFormulario("Sim/n\xE3o usa apenas Sim e N\xE3o; para outras alternativas use escolha \xFAnica.");
+    pergunta.opcoes = ["Sim", "N\xE3o"];
+  }
+  if (["unica", "multipla", "ordenacao"].includes(tipo)) pergunta.opcoes = listaTextos(item.opcoes ?? entrada.opcoes, "Alternativas", 2, 100, true);
+  if (tipo === "imagens") {
+    if (!Array.isArray(item.opcoes) || item.opcoes.length < 2 || item.opcoes.length > 20) throw new ErroFormulario("Informe de 2 a 20 op\xE7\xF5es com imagem.");
+    pergunta.opcoes = item.opcoes.map((opcao) => {
+      if (!opcao || typeof opcao !== "object" || Array.isArray(opcao) || Object.keys(opcao).some((chave) => !["texto", "imagem"].includes(chave))) throw new ErroFormulario("Cada imagem exige texto e imagem.");
+      const imagem = textoFormato(opcao.imagem, "Refer\xEAncia da imagem", 4e5);
+      if (/^(?:https?|javascript|blob):/i.test(imagem) || imagem.startsWith("data:") && !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(imagem)) throw new ErroFormulario("Use imagem PNG, JPEG ou WebP local ou incorporada; links remotos n\xE3o s\xE3o aceitos nesta vers\xE3o.");
+      if (!imagem.startsWith("data:") && !imagem.startsWith("file:") && !/^[A-Za-z]:[\\/]/.test(imagem) && !/^\/(?!\/)/.test(imagem) && !/^assets[\\/]/.test(imagem)) throw new ErroFormulario("Use um caminho local absoluto, um asset do plugin ou imagem incorporada.");
+      return { texto: textoFormato(opcao.texto, "Texto da imagem", 300), imagem };
+    });
+    if (new Set(pergunta.opcoes.map((opcao) => opcao.texto)).size !== pergunta.opcoes.length) throw new ErroFormulario("Os textos das imagens devem ser distintos.");
+  }
+  if (numericos.has(tipo)) {
+    const estrelasOuEmojis = ["estrelas", "emojis"].includes(pergunta.visual);
+    pergunta.min = item.min ?? (estrelasOuEmojis ? 1 : tipo === "numero" ? -1e6 : 0);
+    pergunta.max = item.max ?? (estrelasOuEmojis ? 5 : pergunta.visual === "barra" ? 100 : ["numero", "intervalo"].includes(tipo) ? 1e6 : 10);
+    pergunta.passo = item.passo ?? 1;
+    if (![pergunta.min, pergunta.max, pergunta.passo].every(Number.isFinite) || pergunta.min >= pergunta.max || pergunta.passo <= 0 || !Number.isFinite((pergunta.max - pergunta.min) / pergunta.passo) || pergunta.min + pergunta.passo === pergunta.min) throw new ErroFormulario(`Limites num\xE9ricos inv\xE1lidos na pergunta ${indice + 1}.`);
+    if (["nota", "escala"].includes(tipo) && ![pergunta.min, pergunta.max, pergunta.passo].every(Number.isSafeInteger)) throw new ErroFormulario("Nota e escala por bot\xF5es exigem limites e passos inteiros; para fra\xE7\xF5es, use n\xFAmero.");
+    if (["nota", "escala"].includes(tipo) && pergunta.visual !== "barra" && (pergunta.max - pergunta.min) / pergunta.passo > 20) throw new ErroFormulario("Uma nota ou escala por bot\xF5es pode ter at\xE9 21 alternativas; para mais valores, use n\xFAmero.");
+    if (pergunta.visual === "estrelas" && (pergunta.min < 0 || pergunta.max > 10 || pergunta.passo !== 1 || tipo === "numero")) throw new ErroFormulario("Estrelas exigem nota ou escala inteira entre zero e dez, com passo um.");
+    if (pergunta.visual === "emojis" && (pergunta.min !== 1 || pergunta.max !== 5 || pergunta.passo !== 1 || tipo === "numero")) throw new ErroFormulario("Emojis exigem nota ou escala de um a cinco, com passo um.");
+    if (item.unidade !== void 0) {
+      if (tipo !== "intervalo" && pergunta.visual !== "barra") throw new ErroFormulario("Unidade \xE9 usada em intervalo ou barra deslizante.");
+      pergunta.unidade = textoFormato(item.unidade, "Unidade", 40);
+    }
+  }
+  if (tipo === "pontos") {
+    pergunta.itens = listaTextos(item.itens, "Crit\xE9rios de pontua\xE7\xE3o", 2, 30).map((texto2, posicao) => ({ id: `i${posicao + 1}`, texto: texto2 }));
+    pergunta.total = item.total ?? 100;
+    if (!Number.isSafeInteger(pergunta.total) || pergunta.total < 1 || pergunta.total > 1e6) throw new ErroFormulario("O total de pontos deve ser inteiro entre 1 e 1000000.");
+  }
+  if (tipo === "lista") {
+    pergunta.min_itens = item.min_itens ?? 1;
+    pergunta.max_itens = item.max_itens ?? 50;
+    if (![pergunta.min_itens, pergunta.max_itens].every(Number.isSafeInteger) || pergunta.min_itens < 1 || pergunta.max_itens > 200 || pergunta.min_itens > pergunta.max_itens) throw new ErroFormulario("Limites da lista inv\xE1lidos: use entre 1 e 200 itens.");
+  }
+  return [pergunta];
+}
+function possuiRecursosNovos(perguntas) {
+  return perguntas.some((pergunta) => !antigos.has(pergunta.tipo) || pergunta.visual || pergunta.se || pergunta.grupo);
+}
+function validarCondicoes(perguntas) {
+  const anteriores = /* @__PURE__ */ new Map();
+  for (const pergunta of perguntas) {
+    if (pergunta.se) {
+      const origem = anteriores.get(pergunta.se.pergunta);
+      if (!origem) throw new ErroFormulario(`A condi\xE7\xE3o de ${pergunta.id} deve referenciar uma pergunta anterior existente.`);
+      const valor = pergunta.se.igual;
+      if (["sim_nao", "unica", "multipla"].includes(origem.tipo)) {
+        if (!origem.opcoes.includes(valor)) throw new ErroFormulario(`Valor de condi\xE7\xE3o inv\xE1lido em ${pergunta.id}.`);
+      } else if (origem.tipo === "imagens") {
+        if (!origem.opcoes.some((opcao) => opcao.texto === valor)) throw new ErroFormulario(`Valor de condi\xE7\xE3o inv\xE1lido em ${pergunta.id}.`);
+      } else if (["nota", "escala", "numero"].includes(origem.tipo)) validarNumero(origem, valor);
+      else throw new ErroFormulario("A condi\xE7\xE3o exige origem de escolha, nota, escala ou n\xFAmero.");
+    }
+    anteriores.set(pergunta.id, pergunta);
+  }
+}
+function perguntasVisiveis(formulario, respostas = {}) {
+  const ativas = /* @__PURE__ */ new Set();
+  return formulario.perguntas.filter((pergunta) => {
+    const regra = pergunta.se;
+    const valor = regra && respostas[regra.pergunta];
+    const ativa = !regra || ativas.has(regra.pergunta) && (Array.isArray(valor) ? valor.includes(regra.igual) : valor === regra.igual);
+    if (ativa) ativas.add(pergunta.id);
+    return ativa;
+  });
+}
+function validarNumero(pergunta, valor) {
+  if (!Number.isFinite(valor) || valor < pergunta.min || valor > pergunta.max || Math.abs((valor - pergunta.min) / pergunta.passo - Math.round((valor - pergunta.min) / pergunta.passo)) > 1e-6) throw new ErroFormulario(`Valor num\xE9rico inv\xE1lido em ${pergunta.id}.`);
+}
+function objetoResposta(valor, permitidas, nome) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor) || Object.keys(valor).some((chave) => !permitidas.includes(chave))) throw new ErroFormulario(`Resposta ${nome} inv\xE1lida.`);
+}
+function respostaAusente(resposta) {
+  return resposta === void 0 || resposta === null || resposta === "" || typeof resposta === "string" && !resposta.trim() || Array.isArray(resposta) && !resposta.length;
+}
+function verificarResposta(pergunta, resposta) {
+  if (!TIPOS.includes(pergunta.tipo) || pergunta.tipo === "tabela") throw new ErroFormulario("Defini\xE7\xE3o de pergunta inv\xE1lida.");
+  if (respostaAusente(resposta)) return false;
+  if (["sim_nao", "unica"].includes(pergunta.tipo) && !pergunta.opcoes.includes(resposta)) throw new ErroFormulario(`Alternativa inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "multipla" && (!Array.isArray(resposta) || resposta.some((valor) => !pergunta.opcoes.includes(valor)) || new Set(resposta).size !== resposta.length)) throw new ErroFormulario(`Sele\xE7\xE3o m\xFAltipla inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "texto") textoFormato(resposta, `Resposta ${pergunta.id}`, 16e3);
+  if (["nota", "escala", "numero"].includes(pergunta.tipo)) validarNumero(pergunta, resposta);
+  if (pergunta.tipo === "data" && (typeof resposta !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(resposta) || !Number.isFinite(Date.parse(`${resposta}T00:00:00Z`)) || (/* @__PURE__ */ new Date(`${resposta}T00:00:00Z`)).toISOString().slice(0, 10) !== resposta)) throw new ErroFormulario(`Data inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "hora" && (typeof resposta !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(resposta))) throw new ErroFormulario(`Hora inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "data_hora") {
+    if (typeof resposta !== "string" || resposta.split("T").length !== 2) throw new ErroFormulario(`Data e hora inv\xE1lidas em ${pergunta.id}.`);
+    const [data, hora] = resposta.split("T");
+    if (data) {
+      if (data.startsWith("0000-")) throw new ErroFormulario(`Data inv\xE1lida em ${pergunta.id}.`);
+      verificarResposta({ id: pergunta.id, tipo: "data" }, data);
+    }
+    if (hora) verificarResposta({ id: pergunta.id, tipo: "hora" }, hora);
+    return Boolean(data && hora);
+  }
+  if (pergunta.tipo === "ordenacao" && (!Array.isArray(resposta) || resposta.length !== pergunta.opcoes.length || new Set(resposta).size !== resposta.length || resposta.some((valor) => !pergunta.opcoes.includes(valor)))) throw new ErroFormulario(`Ordena\xE7\xE3o incompleta ou inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "imagens" && !pergunta.opcoes.some((opcao) => opcao.texto === resposta)) throw new ErroFormulario(`Imagem escolhida inv\xE1lida em ${pergunta.id}.`);
+  if (pergunta.tipo === "pontos") {
+    const ids = pergunta.itens.map((item) => item.id);
+    objetoResposta(resposta, ids, "de pontos");
+    for (const valor of Object.values(resposta)) if (!Number.isSafeInteger(valor) || valor < 0 || valor > pergunta.total) throw new ErroFormulario(`Pontos inv\xE1lidos em ${pergunta.id}.`);
+    return ids.reduce((soma, id) => soma + (resposta[id] ?? 0), 0) === pergunta.total;
+  }
+  if (pergunta.tipo === "intervalo") {
+    objetoResposta(resposta, ["min", "max"], "de intervalo");
+    for (const valor of Object.values(resposta)) validarNumero(pergunta, valor);
+    return resposta.min !== void 0 && resposta.max !== void 0 && resposta.min <= resposta.max;
+  }
+  if (pergunta.tipo === "lista") {
+    if (!Array.isArray(resposta) || resposta.length > pergunta.max_itens || resposta.some((item) => typeof item !== "string" || item.length > 2e3)) throw new ErroFormulario(`Lista inv\xE1lida em ${pergunta.id}.`);
+    return resposta.filter((item) => item.trim()).length >= pergunta.min_itens;
+  }
+  return true;
+}
+function respostaParaEntrega(pergunta, resposta) {
+  if (pergunta.tipo === "lista") return resposta.filter((item) => item.trim());
+  if (pergunta.tipo === "pontos") return Object.fromEntries(pergunta.itens.map((item) => [item.id, resposta[item.id] ?? 0]));
+  return resposta;
+}
+function formatarResposta(pergunta, resposta) {
+  if (pergunta.tipo === "data_hora") {
+    const [data, hora] = resposta.split("T");
+    const [ano, mes, dia] = data.split("-");
+    return `${dia}/${mes}/${ano} \xE0s ${hora}`;
+  }
+  if (pergunta.tipo === "ordenacao" || pergunta.tipo === "lista") return "\n" + resposta.map((item, indice) => `${indice + 1}. ${item}`).join("\n");
+  if (pergunta.tipo === "pontos") return "\n" + pergunta.itens.map((item) => `${item.texto}: ${resposta[item.id] ?? 0} pontos`).join("\n");
+  if (pergunta.tipo === "intervalo") return `De ${resposta.min} a ${resposta.max}${pergunta.unidade ? " " + pergunta.unidade : ""}`;
+  return Array.isArray(resposta) ? resposta.join("; ") : String(resposta);
+}
+
+// src/formulario.mjs
+var POR_PAGINA = 6;
 function texto(valor, nome, limite = 6e3) {
   if (typeof valor !== "string" || !valor.trim() || valor.length > limite) throw new ErroFormulario(`${nome} deve conter texto de at\xE9 ${limite} caracteres.`);
   return valor;
@@ -16977,29 +17153,11 @@ function validarTamanhoChamada(nome, entrada) {
 function normalizarFormulario(entrada) {
   if (!entrada || !Array.isArray(entrada.perguntas) || !entrada.perguntas.length || entrada.perguntas.length > 1e3) throw new ErroFormulario("Informe de 1 a 1000 perguntas.");
   const titulo = entrada.titulo === void 0 ? "Perguntas e decis\xF5es" : texto(entrada.titulo, "T\xEDtulo", 200);
-  const perguntas = entrada.perguntas.map((original, indice) => {
-    const item = typeof original === "string" ? { texto: original } : original;
-    if (!item || typeof item !== "object" || Array.isArray(item)) throw new ErroFormulario(`Pergunta ${indice + 1} inv\xE1lida.`);
-    const tipo = item.tipo ?? entrada.tipo ?? "texto";
-    if (!TIPOS.includes(tipo)) throw new ErroFormulario(`Tipo inv\xE1lido na pergunta ${indice + 1}.`);
-    const pergunta = { id: `p${indice + 1}`, texto: texto(item.texto, `Pergunta ${indice + 1}`), tipo };
-    if (tipo === "sim_nao") pergunta.opcoes = ["Sim", "N\xE3o"];
-    if (tipo === "unica" || tipo === "multipla") {
-      const opcoes = item.opcoes ?? entrada.opcoes;
-      if (!Array.isArray(opcoes) || opcoes.length < 2 || opcoes.length > 100 || new Set(opcoes).size !== opcoes.length) throw new ErroFormulario(`Informe de 2 a 100 alternativas distintas na pergunta ${indice + 1}.`);
-      pergunta.opcoes = opcoes.map((opcao) => texto(opcao, "Alternativa", 300));
-    }
-    if (["nota", "escala", "numero"].includes(tipo)) {
-      pergunta.min = item.min ?? (tipo === "numero" ? -1e6 : 0);
-      pergunta.max = item.max ?? (tipo === "numero" ? 1e6 : 10);
-      pergunta.passo = item.passo ?? 1;
-      if (![pergunta.min, pergunta.max, pergunta.passo].every(Number.isFinite) || pergunta.min >= pergunta.max || pergunta.passo <= 0) throw new ErroFormulario(`Limites num\xE9ricos inv\xE1lidos na pergunta ${indice + 1}.`);
-      if (["nota", "escala"].includes(tipo) && ![pergunta.min, pergunta.max, pergunta.passo].every(Number.isSafeInteger)) throw new ErroFormulario("Nota e escala por bot\xF5es exigem limites e passos inteiros; para fra\xE7\xF5es, use n\xFAmero.");
-      if ((pergunta.max - pergunta.min) / pergunta.passo > 20 && ["nota", "escala"].includes(tipo)) throw new ErroFormulario("Uma nota ou escala por bot\xF5es pode ter at\xE9 21 alternativas; para mais valores, use n\xFAmero.");
-    }
-    return pergunta;
-  });
-  const formulario = { titulo, perguntas };
+  const perguntas = entrada.perguntas.flatMap((original, indice) => normalizarPergunta(original, entrada, indice));
+  if (entrada.opcoes !== void 0 && !perguntas.some((pergunta) => ["unica", "multipla", "ordenacao"].includes(pergunta.tipo))) throw new ErroFormulario("Alternativas informadas sem uma pergunta de escolha. Indique o tipo de pergunta.");
+  if (perguntas.length > 1e3) throw new ErroFormulario("O formul\xE1rio expandido supera 1000 perguntas. Divida a tabela.");
+  validarCondicoes(perguntas);
+  const formulario = { titulo, perguntas, ...possuiRecursosNovos(perguntas) ? { formato: perguntas.some((pergunta) => pergunta.tipo === "data_hora") ? 4 : 2 } : {} };
   if (tamanhoJson(formulario) > LIMITE_FORMULARIO) throw new ErroFormulario("O formul\xE1rio supera 400 KB. Divida a lista ou reduza as alternativas por item.", "limite_tamanho");
   return formulario;
 }
@@ -17011,7 +17169,7 @@ function migrarPaginacao(formulario, rascunho) {
   if (!Number.isInteger(quantidadeAnterior) || quantidadeAnterior < 1) throw new ErroFormulario("A pagina\xE7\xE3o guardada \xE9 inv\xE1lida. O rascunho foi preservado.");
   const paginaAnterior = rascunho.pagina ?? 0;
   if (!Number.isInteger(paginaAnterior) || paginaAnterior < 0) throw new ErroFormulario("A posi\xE7\xE3o guardada \xE9 inv\xE1lida. O rascunho foi preservado.");
-  const ultima = Math.max(0, Math.ceil(formulario.perguntas.length / POR_PAGINA) - 1);
+  const ultima = Math.max(0, Math.ceil(perguntasVisiveis(formulario, rascunho.respostas).length / POR_PAGINA) - 1);
   return { ...rascunho, respostas: { ...rascunho.respostas }, observacoes: { ...rascunho.observacoes }, pagina: Math.min(ultima, Math.floor(paginaAnterior * quantidadeAnterior / POR_PAGINA)), itens_por_pagina: POR_PAGINA };
 }
 function validarRascunho(formulario, entrada, completo = false) {
@@ -17023,22 +17181,12 @@ function validarRascunho(formulario, entrada, completo = false) {
     for (const id of Object.keys(entrada[grupo] ?? {})) if (!ids.has(id)) throw new ErroFormulario(`Pergunta desconhecida: ${id}.`);
   }
   const pendentes = [];
+  const visiveis = new Set(perguntasVisiveis(formulario, entrada.respostas).map((pergunta) => pergunta.id));
   for (const pergunta of formulario.perguntas) {
     const resposta = entrada.respostas?.[pergunta.id];
-    if (resposta === void 0 || resposta === null || resposta === "" || typeof resposta === "string" && !resposta.trim() || Array.isArray(resposta) && !resposta.length) pendentes.push(pergunta.id);
-    else {
-      if (["sim_nao", "unica"].includes(pergunta.tipo) && !pergunta.opcoes.includes(resposta)) throw new ErroFormulario(`Alternativa inv\xE1lida em ${pergunta.id}.`);
-      if (pergunta.tipo === "multipla" && (!Array.isArray(resposta) || resposta.some((valor) => !pergunta.opcoes.includes(valor)) || new Set(resposta).size !== resposta.length)) throw new ErroFormulario(`Sele\xE7\xE3o m\xFAltipla inv\xE1lida em ${pergunta.id}.`);
-      if (pergunta.tipo === "texto") texto(resposta, `Resposta ${pergunta.id}`, 16e3);
-      if (["nota", "escala", "numero"].includes(pergunta.tipo)) {
-        if (!Number.isFinite(resposta) || resposta < pergunta.min || resposta > pergunta.max || Math.abs((resposta - pergunta.min) / pergunta.passo - Math.round((resposta - pergunta.min) / pergunta.passo)) > 1e-6) throw new ErroFormulario(`Valor num\xE9rico inv\xE1lido em ${pergunta.id}.`);
-      }
-      if (pergunta.tipo === "data") {
-        if (typeof resposta !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(resposta) || !Number.isFinite(Date.parse(`${resposta}T00:00:00Z`)) || (/* @__PURE__ */ new Date(`${resposta}T00:00:00Z`)).toISOString().slice(0, 10) !== resposta) throw new ErroFormulario(`Data inv\xE1lida em ${pergunta.id}.`);
-      }
-      if (pergunta.tipo === "hora" && (typeof resposta !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(resposta))) throw new ErroFormulario(`Hora inv\xE1lida em ${pergunta.id}.`);
-      saida.respostas[pergunta.id] = resposta;
-    }
+    const concluida = verificarResposta(pergunta, resposta);
+    if (!concluida && visiveis.has(pergunta.id)) pendentes.push(pergunta.id);
+    if (!respostaAusente(resposta)) saida.respostas[pergunta.id] = structuredClone(resposta);
     const observacao = entrada.observacoes?.[pergunta.id] ?? "";
     if (typeof observacao !== "string" || observacao.length > 16e3) throw new ErroFormulario(`Observa\xE7\xE3o inv\xE1lida em ${pergunta.id}.`);
     if (observacao) saida.observacoes[pergunta.id] = observacao;
@@ -17046,7 +17194,7 @@ function validarRascunho(formulario, entrada, completo = false) {
   const gerais = entrada.gerais ?? "";
   if (typeof gerais !== "string" || gerais.length > 16e3) throw new ErroFormulario("Observa\xE7\xF5es gerais inv\xE1lidas.");
   saida.gerais = gerais;
-  const ultimaPagina = Math.ceil(formulario.perguntas.length / POR_PAGINA) - 1;
+  const ultimaPagina = Math.max(0, Math.ceil(visiveis.size / POR_PAGINA) - 1);
   if (entrada.pagina !== void 0 && (!Number.isInteger(entrada.pagina) || entrada.pagina < 0 || entrada.pagina > ultimaPagina)) throw new ErroFormulario("P\xE1gina inv\xE1lida.");
   saida.pagina = entrada.pagina ?? 0;
   if (tamanhoJson(saida) > LIMITE_RASCUNHO) throw new ErroFormulario("O preenchimento supera 1 MB. Reduza o conte\xFAdo antes de guardar. O texto digitado permanece nesta tela; n\xE3o feche o painel antes de confirmar o salvamento.", "limite_tamanho");
@@ -17055,16 +17203,64 @@ function validarRascunho(formulario, entrada, completo = false) {
 }
 function montarEntrega(formulario, preenchimento) {
   const { rascunho } = validarRascunho(formulario, preenchimento, true);
-  const respostas = formulario.perguntas.map((pergunta) => ({ id: pergunta.id, pergunta: pergunta.texto, resposta: rascunho.respostas[pergunta.id], ...rascunho.observacoes[pergunta.id] ? { observacao: rascunho.observacoes[pergunta.id] } : {} }));
-  const blocos = respostas.map((item) => `${item.id.toUpperCase()} \xB7 ${item.pergunta}
-Resposta: ${Array.isArray(item.resposta) ? item.resposta.join("; ") : item.resposta}${item.observacao ? `
+  const ativas = perguntasVisiveis(formulario, rascunho.respostas);
+  const respostas = ativas.map((pergunta) => ({ id: pergunta.id, pergunta: pergunta.grupo ? `${pergunta.grupo.texto} \u2014 ${pergunta.texto}` : pergunta.texto, resposta: respostaParaEntrega(pergunta, rascunho.respostas[pergunta.id]), ...rascunho.observacoes[pergunta.id] ? { observacao: rascunho.observacoes[pergunta.id] } : {} }));
+  const blocos = respostas.map((item, indice) => `${item.id.toUpperCase()} \xB7 ${item.pergunta}
+Resposta: ${formatarResposta(ativas[indice], item.resposta)}${item.observacao ? `
 Observa\xE7\xF5es: ${item.observacao}` : ""}`);
   return { texto: [formulario.titulo, ...blocos, ...rascunho.gerais ? [`Observa\xE7\xF5es gerais: ${rascunho.gerais}`] : []].join("\n\n"), compacto: { respostas: respostas.map(({ id, resposta, observacao }) => observacao ? [id, resposta, observacao] : [id, resposta]), ...rascunho.gerais ? { observacoes: rascunho.gerais } : {} } };
 }
 
+// package.json
+var package_default = {
+  name: "perguntas-decisoes",
+  version: "0.5.1",
+  private: true,
+  type: "module",
+  scripts: {
+    lint: "eslint src scripts testes eslint.config.mjs",
+    "preparar:ditado": "node --use-system-ca scripts/preparar-ditado.mjs",
+    "compilar:ditado": "node scripts/compilar-ditado.mjs",
+    test: "node --test testes/*.test.mjs",
+    build: "node scripts/construir.mjs",
+    "package:desktop": "node scripts/compilar-ditado.mjs && node scripts/empacotar-desktop.mjs",
+    "sincronizar:catalogo": "node scripts/construir.mjs && node scripts/compilar-ditado.mjs && node scripts/empacotar-desktop.mjs --sincronizar-catalogo",
+    verificar: "npm run lint && npm test",
+    dev: "node scripts/servidor-local.mjs",
+    "verificar:desktop": "node scripts/verificar-desktop.mjs",
+    "preparar:publicacao": "node scripts/preparar-publicacao.mjs",
+    "auditar:publicacao": "node scripts/auditar-publicacao.mjs",
+    pretest: "npm run build && npm run package:desktop"
+  },
+  dependencies: {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "@openai/mcp-extensions": "0.1.0"
+  },
+  devDependencies: {
+    esbuild: "0.28.2",
+    eslint: "10.12.0"
+  },
+  engines: {
+    node: ">=24"
+  },
+  license: "MIT"
+};
+
+// src/versao.mjs
+var VERSAO_PLUGIN = package_default.version;
+
 // src/repositorio.mjs
 function registro(linha) {
-  return { id: linha.id, versao: linha.versao, formulario: JSON.parse(linha.definicao), rascunho: JSON.parse(linha.rascunho), entrega: linha.entrega ? JSON.parse(linha.entrega) : null };
+  const resultado = { id: linha.id, versao: linha.versao, formulario: JSON.parse(linha.definicao), rascunho: JSON.parse(linha.rascunho), entrega: linha.entrega ? JSON.parse(linha.entrega) : null };
+  Object.defineProperty(resultado, "dono", { value: linha.dono });
+  return resultado;
+}
+var escopoFormatos = (dono) => JSON.stringify(["perguntas-formatos-v1", dono]);
+var escopoDataHora = (dono) => JSON.stringify(["perguntas-data-hora-v1", dono]);
+var escopoDataHoraColunas = (dono) => JSON.stringify(["perguntas-data-hora-v2", dono]);
+function destinoAtual(dono, origem) {
+  return origem.formulario.formato === 3 ? { dono: escopoDataHoraColunas(dono), formulario: { ...origem.formulario, formato: 4 } } : { dono: origem.dono, formulario: origem.formulario };
 }
 var Repositorio = class {
   constructor(banco) {
@@ -17072,24 +17268,26 @@ var Repositorio = class {
   }
   async criar(dono, formulario, rascunho) {
     const id = crypto.randomUUID();
-    await this.banco.prepare("INSERT INTO formularios (id,dono,definicao,rascunho,criado_em) VALUES (?,?,?,?,?)").bind(id, dono, JSON.stringify(formulario), JSON.stringify(rascunho), (/* @__PURE__ */ new Date()).toISOString()).run();
+    await this.banco.prepare("INSERT INTO formularios (id,dono,definicao,rascunho,criado_em) VALUES (?,?,?,?,?)").bind(id, formulario.formato === 4 ? escopoDataHoraColunas(dono) : formulario.formato === 3 ? escopoDataHora(dono) : formulario.formato === 2 ? escopoFormatos(dono) : dono, JSON.stringify(formulario), JSON.stringify(rascunho), (/* @__PURE__ */ new Date()).toISOString()).run();
     return this.ler(dono, id);
   }
   async ler(dono, id) {
-    const linha = await this.banco.prepare("SELECT * FROM formularios WHERE id=? AND dono=?").bind(id, dono).first();
+    const linha = await this.banco.prepare("SELECT * FROM formularios WHERE id=? AND dono IN (?,?,?,?)").bind(id, dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono)).first();
     if (!linha) throw new ErroFormulario("Formul\xE1rio n\xE3o encontrado ou acesso n\xE3o autorizado.", "nao_encontrado");
     return registro(linha);
   }
   async listar(dono, cursor) {
     const filtro = cursor ? " AND (criado_em<? OR (criado_em=? AND id<?))" : "";
-    const valores = cursor ? [dono, cursor.criado_em, cursor.criado_em, cursor.id] : [dono];
-    const linhas = await this.banco.prepare(`SELECT id,definicao,criado_em FROM formularios WHERE dono=?${filtro} ORDER BY criado_em DESC,id DESC LIMIT 101`).bind(...valores).all();
+    const valores = cursor ? [dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono), cursor.criado_em, cursor.criado_em, cursor.id] : [dono, escopoFormatos(dono), escopoDataHora(dono), escopoDataHoraColunas(dono)];
+    const linhas = await this.banco.prepare(`SELECT id,definicao,criado_em FROM formularios WHERE dono IN (?,?,?,?)${filtro} ORDER BY criado_em DESC,id DESC LIMIT 101`).bind(...valores).all();
     const pagina = linhas.results.slice(0, 100);
     const ultima = pagina.at(-1);
     return { pendentes: pagina.map((linha) => ({ id: linha.id, titulo: JSON.parse(linha.definicao).titulo })), proximaPagina: linhas.results.length > 100 ? { criado_em: ultima.criado_em, id: ultima.id } : null };
   }
   async salvar(dono, id, versao, rascunho) {
-    const resultado = await this.banco.prepare("UPDATE formularios SET rascunho=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *").bind(JSON.stringify(rascunho), id, dono, versao).first();
+    const origem = await this.ler(dono, id);
+    const destino = destinoAtual(dono, origem);
+    const resultado = await this.banco.prepare("UPDATE formularios SET rascunho=?,dono=?,definicao=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *").bind(JSON.stringify(rascunho), destino.dono, JSON.stringify(destino.formulario), id, origem.dono, versao).first();
     if (!resultado) throw new ErroFormulario("O formul\xE1rio mudou em outra janela ou est\xE1 em entrega. Reabra antes de continuar.", "conflito");
     return registro(resultado);
   }
@@ -17098,20 +17296,21 @@ var Repositorio = class {
     if (atual.entrega && atual.entrega.token === entrega.token) return atual;
     if (atual.versao !== versao) throw new ErroFormulario("O formul\xE1rio mudou. Reabra antes de enviar.", "conflito");
     if (atual.entrega) throw new ErroFormulario("Existe outra prepara\xE7\xE3o. Confira a conversa e retome a edi\xE7\xE3o antes de enviar.", "conflito");
-    const resultado = await this.banco.prepare("UPDATE formularios SET rascunho=?,entrega=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *").bind(JSON.stringify(rascunho), JSON.stringify(entrega), id, dono, versao).first();
+    const destino = destinoAtual(dono, atual);
+    const resultado = await this.banco.prepare("UPDATE formularios SET rascunho=?,entrega=?,dono=?,definicao=?,versao=versao+1 WHERE id=? AND dono=? AND versao=? AND entrega IS NULL RETURNING *").bind(JSON.stringify(rascunho), JSON.stringify(entrega), destino.dono, JSON.stringify(destino.formulario), id, atual.dono, versao).first();
     if (!resultado) throw new ErroFormulario("O formul\xE1rio mudou durante a entrega.", "conflito");
     return registro(resultado);
   }
   async concluir(dono, id, token) {
     const atual = await this.ler(dono, id);
     if (!atual.entrega || atual.entrega.token !== token) throw new ErroFormulario("Confirma\xE7\xE3o de entrega inv\xE1lida. O progresso foi preservado.", "confirmacao_invalida");
-    const resultado = await this.banco.prepare("DELETE FROM formularios WHERE id=? AND dono=? AND versao=?").bind(id, dono, atual.versao).run();
+    const resultado = await this.banco.prepare("DELETE FROM formularios WHERE id=? AND dono=? AND versao=?").bind(id, atual.dono, atual.versao).run();
     if (resultado.meta.changes !== 1) throw new ErroFormulario("N\xE3o foi poss\xEDvel encerrar a reten\xE7\xE3o do formul\xE1rio.", "conflito");
   }
   async retomar(dono, id, token) {
     const atual = await this.ler(dono, id);
     if (!atual.entrega || atual.entrega.token !== token) throw new ErroFormulario("Prepara\xE7\xE3o de entrega inv\xE1lida.", "confirmacao_invalida");
-    const resultado = await this.banco.prepare("UPDATE formularios SET entrega=NULL,versao=versao+1 WHERE id=? AND dono=? AND versao=? RETURNING *").bind(id, dono, atual.versao).first();
+    const resultado = await this.banco.prepare("UPDATE formularios SET entrega=NULL,versao=versao+1 WHERE id=? AND dono=? AND versao=? RETURNING *").bind(id, atual.dono, atual.versao).first();
     if (!resultado) throw new ErroFormulario("O formul\xE1rio mudou durante a retomada.", "conflito");
     return registro(resultado);
   }
@@ -18230,16 +18429,40 @@ var CfWorkerJsonSchemaValidator = class {
   }
 };
 
+// src/exibicao.mjs
+var URI_INTERFACE = `ui://perguntas-decisoes/${VERSAO_PLUGIN}/painel`;
+var URI_INTERFACE_CHAT = `ui://perguntas-decisoes/${VERSAO_PLUGIN}/chat`;
+var URI_INTERFACE_LEGADA = "ui://perguntas-decisoes/painel";
+var URI_INTERFACE_CHAT_LEGADA = "ui://perguntas-decisoes/chat";
+var EXIBICAO_FORMULARIO = { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen", "inline"] };
+var EXIBICAO_NO_CHAT = { preferredDisplayMode: "inline", availableDisplayModes: ["inline", "fullscreen"] };
+var RECURSOS_INTERFACE = [
+  { name: "painel", uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app" },
+  { name: "formulario-no-chat", uri: URI_INTERFACE_CHAT, mimeType: "text/html;profile=mcp-app" }
+];
+function lerRecursoInterface(html2, uri2) {
+  const apresentacao = [URI_INTERFACE, URI_INTERFACE_LEGADA].includes(uri2) ? "lateral" : [URI_INTERFACE_CHAT, URI_INTERFACE_CHAT_LEGADA].includes(uri2) ? "chat" : null;
+  if (!apresentacao) throw new Error("Recurso de interface n\xE3o encontrado.");
+  const marcador = 'id="perguntas-decisoes-app"';
+  if (!html2.includes(marcador)) throw new Error("A interface n\xE3o cont\xE9m o formul\xE1rio esperado.");
+  return {
+    uri: uri2,
+    mimeType: "text/html;profile=mcp-app",
+    text: html2.replace(marcador, `${marcador} data-apresentacao="${apresentacao}"`),
+    _meta: { ui: { permissions: { clipboardWrite: {} } }, "openai/ui": apresentacao === "chat" ? EXIBICAO_NO_CHAT : EXIBICAO_FORMULARIO }
+  };
+}
+
 // src/servidor.mjs
-var URI_INTERFACE = "ui://perguntas-decisoes/painel";
-var esquemaPergunta = { anyOf: [{ type: "string" }, { type: "object", properties: { texto: { type: "string" }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } }, min: { type: "number" }, max: { type: "number" }, passo: { type: "number" } }, required: ["texto"], additionalProperties: false }] };
+var esquemaPergunta = { anyOf: [{ type: "string" }, { type: "object", properties: { texto: { type: "string" }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { anyOf: [{ type: "string" }, { type: "object", properties: { texto: { type: "string" }, imagem: { type: "string" } }, required: ["texto", "imagem"], additionalProperties: false }] } }, min: { type: "number" }, max: { type: "number" }, passo: { type: "number" }, itens: { type: "array", items: { type: "string" } }, total: { type: "integer" }, unidade: { type: "string" }, min_itens: { type: "integer" }, max_itens: { type: "integer" }, visual: { enum: ["botoes", "estrelas", "emojis", "barra"] }, se: { type: "object", properties: { pergunta: { type: "string" }, igual: { type: ["string", "number"] } }, required: ["pergunta", "igual"], additionalProperties: false } }, required: ["texto"], additionalProperties: false }] };
 var objeto = (properties) => ({ type: "object", properties, additionalProperties: false });
 var leitura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 var alteracao = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 var ui = { ui: { resourceUri: URI_INTERFACE } };
+var uiChat = { ui: { resourceUri: URI_INTERFACE_CHAT } };
 var privada = { ui: { visibility: ["app"] } };
 var FERRAMENTAS = [
-  { name: "criar_formulario", title: "Responder perguntas", description: "Cria perguntas e abre a aba lateral. N\xE3o selecione chats nem ative janelas para abrir ou verificar. Tipos: texto, sim_nao, unica, multipla, nota, escala, numero, data, hora. Tipo/op\xE7\xF5es comuns, observa\xE7\xF5es e p\xE1ginas autom\xE1ticas.", inputSchema: { ...objeto({ titulo: { type: "string" }, perguntas: { type: "array", items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } } }), required: ["perguntas"] }, annotations: alteracao, _meta: ui },
+  { name: "criar_formulario", title: "Responder perguntas", description: "Cria no painel lateral sem mudar de chat. Observa\xE7\xF5es e p\xE1ginas autom\xE1ticas. tabela/pontos usam itens; ordenacao usa opcoes; imagens usa opcoes [{texto,imagem local}]; visual muda notas; se {pergunta:p1,igual:valor} condiciona. Tipo/op\xE7\xF5es comuns opcionais.", inputSchema: { ...objeto({ titulo: { type: "string" }, perguntas: { type: "array", items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: "array", items: { type: "string" } } }), required: ["perguntas"] }, annotations: alteracao, _meta: ui },
   { name: "abrir_painel", title: "Perguntas e decis\xF5es", description: "Abre a aba lateral; pelo id retoma um formul\xE1rio, sem id lista pendentes. Preserve o chat principal: n\xE3o navegue nem ative janelas para abrir ou verificar.", inputSchema: objeto({ id: { type: "string" } }), annotations: leitura, _meta: { ...ui, "openai/ui": { entrypoints: [{ type: "thread" }, { type: "global" }] } } },
   { name: "ler_formulario", inputSchema: { ...objeto({ id: { type: "string" } }), required: ["id"] }, annotations: leitura, _meta: privada },
   { name: "listar_pendentes", inputSchema: objeto({ cursor: { ...objeto({ criado_em: { type: "string", minLength: 1, maxLength: 100 }, id: { type: "string", minLength: 1, maxLength: 100 } }), required: ["criado_em", "id"] } }), annotations: leitura, _meta: privada },
@@ -18248,6 +18471,12 @@ var FERRAMENTAS = [
   { name: "confirmar_entrega", inputSchema: { ...objeto({ id: { type: "string" }, token: { type: "string" } }), required: ["id", "token"] }, annotations: { ...alteracao, destructiveHint: true }, _meta: privada },
   { name: "retomar_edicao", inputSchema: { ...objeto({ id: { type: "string" }, token: { type: "string" } }), required: ["id", "token"] }, annotations: alteracao, _meta: privada }
 ];
+FERRAMENTAS.splice(
+  2,
+  0,
+  { ...FERRAMENTAS[0], name: "criar_formulario_no_chat", title: "Responder no chat", description: "Cria dentro da conversa somente quando solicitado; mesmos formatos, observa\xE7\xF5es e pagina\xE7\xE3o do painel.", _meta: uiChat },
+  { ...FERRAMENTAS[1], name: "abrir_no_chat", title: "Abrir no chat", description: "Abre no chat quando solicitado; id retoma, sem id lista pendentes. Preserve a conversa principal.", _meta: uiChat }
+);
 var esquemasEntrada = new CfWorkerJsonSchemaValidator();
 var validadoresEntrada = new Map(FERRAMENTAS.map((ferramenta) => [ferramenta.name, esquemasEntrada.getValidator(ferramenta.inputSchema)]));
 var mensagensObrigatorias = {
@@ -18271,10 +18500,12 @@ function validarEntradaFerramenta(nome, entrada) {
   if (!validadoresEntrada.get(nome)(entrada).valid) throw new ErroFormulario("Par\xE2metros inv\xE1lidos. Confira os tipos dos campos e remova campos n\xE3o previstos pela ferramenta.");
 }
 function paraInterface(registro2) {
-  return { content: [], structuredContent: { id: registro2.id, total: registro2.formulario.perguntas.length }, _meta: { formulario: registro2.formulario, rascunho: migrarPaginacao(registro2.formulario, registro2.rascunho), versao: registro2.versao, preparacao: registro2.entrega } };
+  return { content: [], structuredContent: { id: registro2.id, total: registro2.formulario.perguntas.length }, _meta: { formulario: registro2.formulario, rascunho: migrarPaginacao(registro2.formulario, registro2.rascunho), versao: registro2.versao, preparacao: registro2.entrega, versao_plugin: VERSAO_PLUGIN } };
 }
 async function chamarFerramenta(nome, entrada, dono, banco) {
   validarEntradaFerramenta(nome, entrada);
+  if (nome === "criar_formulario_no_chat") nome = "criar_formulario";
+  if (nome === "abrir_no_chat") nome = "abrir_painel";
   const repositorio = new Repositorio(banco);
   if (nome === "criar_formulario") return paraInterface(await repositorio.criar(dono, normalizarFormulario(entrada), rascunhoVazio()));
   if (nome === "abrir_painel") {
@@ -18307,17 +18538,60 @@ async function chamarFerramenta(nome, entrada, dono, banco) {
   throw new ErroFormulario("Ferramenta desconhecida.");
 }
 
+// src/copia-desktop.mjs
+import { execFile } from "node:child_process";
+import { join } from "node:path";
+var FERRAMENTA_COPIA = {
+  name: "copiar_respostas",
+  inputSchema: { type: "object", properties: { texto: { type: "string", minLength: 1, maxLength: 2e6 } }, required: ["texto"], additionalProperties: false },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  _meta: { ui: { visibility: ["app"] } }
+};
+var PROGRAMA_COPIA = `
+$ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$textoPerguntas = [Console]::In.ReadToEnd()
+Set-Clipboard -Value $textoPerguntas -ErrorAction Stop
+$textoConferido = Get-Clipboard -Raw -ErrorAction Stop
+if ($textoConferido -cne $textoPerguntas) { throw 'A \xE1rea de transfer\xEAncia n\xE3o confirmou o texto completo.' }
+[Console]::Out.Write('{"copiado":true}')
+`;
+async function copiarNoWindows(entrada, { executar = execFile, plataforma = process.platform } = {}) {
+  validarTamanhoChamada("copiar_respostas", entrada);
+  if (!entrada || typeof entrada !== "object" || Array.isArray(entrada) || Object.keys(entrada).some((chave) => chave !== "texto") || typeof entrada.texto !== "string" || !entrada.texto || entrada.texto.includes("\0")) throw new ErroFormulario("Texto inv\xE1lido para a \xE1rea de transfer\xEAncia.");
+  if (plataforma !== "win32" || !process.env.SystemRoot) throw new ErroFormulario("A integra\xE7\xE3o local de c\xF3pia requer Windows.");
+  const executavel = join(process.env.SystemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe");
+  return new Promise((resolver, rejeitar) => {
+    const filho = executar(executavel, ["-NoLogo", "-NoProfile", "-NonInteractive", "-STA", "-Command", PROGRAMA_COPIA], { windowsHide: true, timeout: 1e4, maxBuffer: 8192, encoding: "utf8" }, (erro, saida) => {
+      if (erro) {
+        rejeitar(new ErroFormulario("N\xE3o foi poss\xEDvel confirmar a c\xF3pia no Windows. Tente novamente; suas respostas continuam dispon\xEDveis."));
+        return;
+      }
+      try {
+        const resultado = JSON.parse(saida);
+        if (resultado.copiado !== true) throw new Error("Confirma\xE7\xE3o ausente.");
+        resolver({ copiado: true });
+      } catch {
+        rejeitar(new ErroFormulario("O Windows n\xE3o confirmou a c\xF3pia. Suas respostas continuam dispon\xEDveis."));
+      }
+    });
+    filho.stdin.on("error", () => rejeitar(new ErroFormulario("N\xE3o consegui enviar o texto \xE0 \xE1rea de transfer\xEAncia.")));
+    filho.stdin.end(entrada.texto, "utf8");
+  });
+}
+
 // src/armazenamento-desktop.mjs
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join as join2, resolve } from "node:path";
 import { userInfo } from "node:os";
 function abrirArmazenamentoDesktop(opcoes = {}) {
-  const base = opcoes.diretorio ?? (process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, "PerguntasDecisoes") : null);
+  const base = opcoes.diretorio ?? (process.env.LOCALAPPDATA ? join2(process.env.LOCALAPPDATA, "PerguntasDecisoes") : null);
   if (!base) throw new Error("A pasta local do perfil Windows n\xE3o foi encontrada. Nenhum banco foi aberto.");
   const diretorio = resolve(base);
   mkdirSync(diretorio, { recursive: true, mode: 448 });
-  const caminho = join(diretorio, "rascunhos.sqlite");
+  const caminho = join2(diretorio, "rascunhos.sqlite");
   const banco = new DatabaseSync(caminho);
   banco.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
   const versao = banco.prepare("PRAGMA user_version").get().user_version;
@@ -18365,31 +18639,395 @@ function abrirArmazenamentoDesktop(opcoes = {}) {
   } };
 }
 
+// src/ditado-desktop.mjs
+import { spawn } from "node:child_process";
+import { readFile, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { join as join3, resolve as resolve2, relative, isAbsolute } from "node:path";
+import { availableParallelism } from "node:os";
+var FERRAMENTA_DITADO = { name: "controlar_ditado", description: "Opera\xE7\xE3o privada de ditado local vinculada a um campo.", inputSchema: { type: "object", properties: { acao: { enum: ["iniciar", "consultar", "parar", "cancelar", "descartar"] }, sessao: { type: "string" }, destino: { type: "object" } }, required: ["acao"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, _meta: { ui: { visibility: ["app"] } } };
+function validarDestino(destino) {
+  if (!destino || typeof destino !== "object" || Array.isArray(destino) || Object.keys(destino).some((chave) => !["id", "versao", "campo", "pergunta"].includes(chave))) throw new Error("Destino do ditado inv\xE1lido.");
+  if (typeof destino.id !== "string" || !destino.id || !Number.isInteger(destino.versao) || !["resposta", "observacao", "gerais"].includes(destino.campo)) throw new Error("Formul\xE1rio, vers\xE3o e campo s\xE3o obrigat\xF3rios.");
+  if (destino.id.length > 100 || destino.pergunta && (typeof destino.pergunta !== "string" || destino.pergunta.length > 100)) throw new Error("Destino excede o limite.");
+  if (destino.campo !== "gerais" && (typeof destino.pergunta !== "string" || !destino.pergunta)) throw new Error("Pergunta do ditado obrigat\xF3ria.");
+}
+function validarRegistroDestino(registro2, destino, original) {
+  if (registro2.entrega || original === void 0 && registro2.versao !== destino.versao) throw new Error("O formul\xE1rio mudou ou est\xE1 em entrega. O campo foi preservado; o ditado n\xE3o foi aplicado.");
+  if (destino.campo !== "gerais") {
+    const pergunta = registro2.formulario.perguntas.find((item) => item.id === destino.pergunta);
+    if (!pergunta || destino.campo === "resposta" && pergunta.tipo !== "texto") throw new Error("Ditado indispon\xEDvel para esse campo.");
+  }
+  const texto2 = destino.campo === "gerais" ? registro2.rascunho.gerais ?? "" : (destino.campo === "resposta" ? registro2.rascunho.respostas : registro2.rascunho.observacoes)[destino.pergunta] ?? "";
+  if (original !== void 0 && texto2 !== original) throw new Error("O campo de destino mudou em outra janela. O texto existente foi preservado; o ditado n\xE3o foi aplicado.");
+  return texto2;
+}
+function empacotarWav(pcm) {
+  if (!Buffer.isBuffer(pcm) || !pcm.length || pcm.length % 2 || pcm.length > 1952e3) throw new Error("\xC1udio PCM inv\xE1lido.");
+  const cabecalho = Buffer.alloc(44);
+  cabecalho.write("RIFF");
+  cabecalho.writeUInt32LE(36 + pcm.length, 4);
+  cabecalho.write("WAVE", 8);
+  cabecalho.write("fmt ", 12);
+  cabecalho.writeUInt32LE(16, 16);
+  cabecalho.writeUInt16LE(1, 20);
+  cabecalho.writeUInt16LE(1, 22);
+  cabecalho.writeUInt32LE(16e3, 24);
+  cabecalho.writeUInt32LE(32e3, 28);
+  cabecalho.writeUInt16LE(2, 32);
+  cabecalho.writeUInt16LE(16, 34);
+  cabecalho.write("data", 36);
+  cabecalho.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([cabecalho, pcm]);
+}
+async function resumo(arquivo) {
+  const hash = createHash("sha256");
+  for await (const bloco of createReadStream(arquivo)) hash.update(bloco);
+  return hash.digest("hex");
+}
+async function obterMotor() {
+  const base = process.env.PERGUNTAS_DIRETORIO_VOZ ?? (process.env.LOCALAPPDATA && join3(process.env.LOCALAPPDATA, "PerguntasDecisoes", "voz"));
+  if (!base) throw new Error("Diret\xF3rio local de voz n\xE3o encontrado.");
+  let manifesto;
+  try {
+    manifesto = JSON.parse(await readFile(join3(base, "motor.json"), "utf8"));
+  } catch (erro) {
+    throw new Error("Ditado local ainda n\xE3o est\xE1 preparado. Execute preparar-ditado.mjs. " + erro.message);
+  }
+  const caminho = (nome) => {
+    if (typeof nome !== "string" || isAbsolute(nome)) throw new Error("Caminho de voz inv\xE1lido.");
+    const absoluto = resolve2(base, nome);
+    if (relative(resolve2(base), absoluto).startsWith("..")) throw new Error("Caminho de voz fora do diret\xF3rio pr\xF3prio.");
+    return absoluto;
+  };
+  const executavel = caminho(manifesto.executavel), modelo = caminho(manifesto.modelo);
+  if (manifesto.versao !== "1.9.2" || manifesto.sha256_modelo !== "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe") throw new Error("Modelo de ditado n\xE3o reconhecido.");
+  if (await resumo(modelo) !== manifesto.sha256_modelo || await resumo(executavel) !== manifesto.sha256_executavel) throw new Error("Integridade do motor ou modelo n\xE3o confirmada.");
+  await stat(executavel);
+  return { executavel, modelo };
+}
+function capturar(sessao, executavel, duracao = 6e4) {
+  const filho = spawn(executavel, [String(duracao)], { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+  sessao.capturador = filho;
+  let texto2 = "", resultado, falha, diagnostico = "";
+  let limite = setTimeout(() => {
+    falha = "O microfone n\xE3o iniciou no prazo.";
+    filho.kill();
+  }, 3e4);
+  filho.stdout.setEncoding("utf8");
+  return new Promise((resolver) => {
+    filho.on("error", (erro) => {
+      falha = erro.message;
+    });
+    filho.stdin.on("error", (erro) => {
+      if (!sessao.cancelado) falha = "Canal de captura interrompido: " + erro.message;
+    });
+    filho.stderr.on("data", (bloco) => {
+      diagnostico = (diagnostico + bloco.toString()).slice(-2e3);
+    });
+    filho.stdout.on("data", (bloco) => {
+      texto2 += bloco;
+      if (Buffer.byteLength(texto2) > 3e6) {
+        falha = "Resposta do gravador excedeu o limite.";
+        filho.kill();
+        return;
+      }
+      let fim;
+      while ((fim = texto2.indexOf("\n")) >= 0) {
+        const linha = texto2.slice(0, fim).trim();
+        texto2 = texto2.slice(fim + 1);
+        if (!linha) continue;
+        try {
+          const mensagem = JSON.parse(linha);
+          if (mensagem.evento === "gravando") {
+            sessao.estado = "gravando";
+            clearTimeout(limite);
+            limite = setTimeout(() => {
+              falha = "Captura excedeu sessenta segundos.";
+              filho.kill();
+            }, duracao + 7e3);
+          } else if (mensagem.evento === "concluido") resultado = mensagem.resultado;
+          else throw new Error("Evento desconhecido.");
+        } catch (erro) {
+          falha = "Resposta de captura inv\xE1lida: " + erro.message;
+          filho.kill();
+        }
+      }
+    });
+    filho.on("close", (codigo) => {
+      clearTimeout(limite);
+      clearTimeout(sessao.limiteParada);
+      sessao.capturador = null;
+      if (texto2.trim()) falha ??= "Resultado de captura incompleto.";
+      if (codigo !== 0 && !(codigo === 2 && sessao.cancelado)) falha ??= resultado?.erro ?? (diagnostico || "Captura n\xE3o confirmada.");
+      if (!resultado?.dispositivo_fechado && !sessao.cancelado) falha ??= "O microfone n\xE3o confirmou a libera\xE7\xE3o.";
+      const pcm = resultado?.audio_base64 ? Buffer.from(resultado.audio_base64, "base64") : null;
+      if (resultado) delete resultado.audio_base64;
+      resolver({ pcm, metricas: resultado, erro: falha });
+    });
+  });
+}
+function argumentosReconhecimento({ modelo, tarefas = availableParallelism() }) {
+  const paralelismo = Math.max(1, Math.min(4, Math.floor(tarefas) || 1));
+  return ["-m", modelo, "-l", "pt", "-f", "-", "-nt", "-np", "-ng", "-t", String(paralelismo), "-sns", "-of", "ditado-local"];
+}
+function reconhecer(sessao, motor, wav) {
+  const filho = spawn(motor.executavel, argumentosReconhecimento(motor), { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+  sessao.transcritor = filho;
+  let texto2 = "", diagnostico = "", falha;
+  const limite = setTimeout(() => {
+    falha = "A transcri\xE7\xE3o excedeu dois minutos.";
+    filho.kill();
+  }, 12e4);
+  filho.stdout.setEncoding("utf8");
+  return new Promise((resolver, rejeitar) => {
+    filho.on("error", (erro) => {
+      falha = erro.message;
+    });
+    filho.stdout.on("data", (bloco) => {
+      texto2 += bloco;
+      if (Buffer.byteLength(texto2) > 64e3) {
+        falha = "Texto reconhecido excedeu o limite.";
+        filho.kill();
+      }
+    });
+    filho.stderr.on("data", (bloco) => {
+      diagnostico = (diagnostico + bloco.toString()).slice(-3e3);
+    });
+    filho.stdin.on("error", (erro) => {
+      if (!sessao.cancelado) falha = "\xC1udio n\xE3o recebido pelo motor: " + erro.message;
+    });
+    filho.stdin.end(wav, () => wav.fill(0));
+    filho.on("close", (codigo) => {
+      clearTimeout(limite);
+      wav.fill(0);
+      sessao.transcritor = null;
+      if (sessao.cancelado) {
+        rejeitar(new Error("Ditado cancelado."));
+        return;
+      }
+      if (falha || codigo !== 0) {
+        rejeitar(new Error(falha ?? "Transcri\xE7\xE3o n\xE3o confirmada: " + diagnostico));
+        return;
+      }
+      const limpo = texto2.trim();
+      if (!limpo) {
+        rejeitar(new Error("O motor terminou sem devolver texto. O campo foi preservado."));
+        return;
+      }
+      if (/^\[(?:BLANK_AUDIO|silence)\]$/i.test(limpo)) {
+        rejeitar(new Error("Nenhuma fala foi reconhecida. O campo foi preservado."));
+        return;
+      }
+      resolver(limpo);
+    });
+  });
+}
+function criarServicoDitado({ banco, dono, executavel = fileURLToPath(new URL("../native/CapturaMicrofone.exe", import.meta.url)), prepararMotor = obterMotor, capturarAudio = capturar }) {
+  const repositorio = new Repositorio(banco);
+  const sessoes = /* @__PURE__ */ new Map();
+  let motorPreparado;
+  let encerrado = false;
+  function conferirServicoAberto() {
+    if (encerrado) throw new Error("O servi\xE7o de ditado foi encerrado.");
+  }
+  async function conferirDestino(destino, original) {
+    validarDestino(destino);
+    const registro2 = await repositorio.ler(dono, destino.id);
+    return validarRegistroDestino(registro2, destino, original);
+  }
+  function parar(sessao, cancelar) {
+    if (cancelar) sessao.cancelado = true;
+    if (sessao.capturador && !sessao.capturador.stdin.destroyed) {
+      sessao.capturador.stdin.write(cancelar ? "cancelar\n" : "parar\n");
+      clearTimeout(sessao.limiteParada);
+      sessao.limiteParada = setTimeout(() => sessao.capturador?.kill(), 3e3);
+    }
+    if (cancelar) sessao.transcritor?.kill();
+  }
+  async function executar(sessao, motor) {
+    let pcm;
+    try {
+      const captura = await capturarAudio(sessao, executavel);
+      pcm = captura.pcm;
+      sessao.metricas = captura.metricas;
+      if (sessao.cancelado) return;
+      if (captura.erro) throw new Error(captura.erro);
+      if (!pcm || !captura.metricas?.sinal_detectado || captura.metricas.rms < 15e-5) throw new Error("Nenhum som suficiente foi detectado. O campo foi preservado.");
+      sessao.estado = "transcrevendo";
+      const inicioTranscricao = Date.now();
+      const wav = empacotarWav(pcm);
+      pcm.fill(0);
+      pcm = null;
+      const texto2 = await reconhecer(sessao, motor, wav);
+      sessao.metricas.transcricao_ms = Date.now() - inicioTranscricao;
+      if (!sessao.cancelado) {
+        await conferirDestino(sessao.destino, sessao.original);
+        sessao.texto = texto2;
+      }
+    } catch (erro) {
+      if (!sessao.cancelado) sessao.erro = erro.message;
+    } finally {
+      pcm?.fill(0);
+      clearTimeout(sessao.limiteParada);
+      sessao.estado = sessao.cancelado ? "cancelado" : "concluido";
+      sessao.fim = Date.now();
+    }
+  }
+  const limpeza = globalThis.setInterval(() => {
+    for (const [id, sessao] of sessoes) {
+      if (!sessao.fim && Date.now() - sessao.contato > 15e3) parar(sessao, true);
+      if (sessao.fim && Date.now() - sessao.fim > 6e4) sessoes.delete(id);
+    }
+  }, 2e3);
+  limpeza.unref();
+  return {
+    async controlar(entrada) {
+      conferirServicoAberto();
+      if (Buffer.byteLength(JSON.stringify(entrada)) > 4096) throw new Error("Opera\xE7\xE3o de ditado excede o limite.");
+      if (!entrada || Object.keys(entrada).some((chave) => !["acao", "sessao", "destino"].includes(chave))) throw new Error("Opera\xE7\xE3o de ditado inv\xE1lida.");
+      if (entrada.acao === "iniciar") {
+        if (entrada.sessao) throw new Error("In\xEDcio n\xE3o aceita sess\xE3o externa.");
+        const original = await conferirDestino(entrada.destino);
+        conferirServicoAberto();
+        if ([...sessoes.values()].some((item) => !item.fim)) throw new Error("J\xE1 existe um ditado ativo.");
+        motorPreparado ??= prepararMotor().catch((erro) => {
+          motorPreparado = null;
+          throw erro;
+        });
+        const motor = await motorPreparado;
+        conferirServicoAberto();
+        if ([...sessoes.values()].some((item) => !item.fim)) throw new Error("J\xE1 existe um ditado ativo.");
+        const id = crypto.randomUUID();
+        const sessao2 = { destino: structuredClone(entrada.destino), original, estado: "iniciando", contato: Date.now(), cancelado: false };
+        sessoes.set(id, sessao2);
+        void executar(sessao2, motor);
+        return { sessao: id, estado: sessao2.estado, limite_segundos: 60 };
+      }
+      if (!["consultar", "parar", "cancelar", "descartar"].includes(entrada.acao) || entrada.destino || typeof entrada.sessao !== "string") throw new Error("Opera\xE7\xE3o ou sess\xE3o de ditado inv\xE1lida.");
+      const sessao = sessoes.get(entrada.sessao);
+      if (!sessao) throw new Error("Ditado desconhecido ou expirado.");
+      sessao.contato = Date.now();
+      if (entrada.acao === "parar") parar(sessao, false);
+      if (entrada.acao === "cancelar") parar(sessao, true);
+      const resultado = { estado: sessao.estado, ...sessao.texto && !sessao.cancelado ? { texto: sessao.texto } : {}, ...sessao.erro ? { erro: sessao.erro } : {}, ...sessao.metricas ? { metricas: sessao.metricas } : {} };
+      if (entrada.acao === "descartar") {
+        if (!sessao.fim) throw new Error("Ditado ainda ativo.");
+        sessoes.delete(entrada.sessao);
+      }
+      return resultado;
+    },
+    fechar() {
+      if (encerrado) return;
+      encerrado = true;
+      globalThis.clearInterval(limpeza);
+      for (const sessao of sessoes.values()) parar(sessao, true);
+    }
+  };
+}
+
+// src/imagens-desktop.mjs
+import { open as open2 } from "node:fs/promises";
+import { resolve as resolve3, relative as relative2, isAbsolute as isAbsolute2 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+var LIMITE_IMAGEM = 1024 * 1024;
+var FERRAMENTA_IMAGEM = { name: "ler_imagem", description: "Carrega uma alternativa visual do formul\xE1rio atual.", inputSchema: { type: "object", properties: { id: { type: "string" }, pergunta: { type: "string" }, opcao: { type: "integer" } }, required: ["id", "pergunta", "opcao"], additionalProperties: false }, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }, _meta: { ui: { visibility: ["app"] } } };
+function identificar(bytes) {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return "image/png";
+  if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
+  if (bytes.length >= 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  throw new ErroFormulario("O arquivo n\xE3o \xE9 uma imagem PNG, JPEG ou WebP v\xE1lida.");
+}
+async function carregar(referencia, diretorioAssets) {
+  if (referencia.startsWith("data:")) {
+    const partes = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+=*)$/.exec(referencia);
+    if (!partes || partes[2].length > Math.ceil(LIMITE_IMAGEM / 3) * 4) throw new ErroFormulario("Imagem incorporada inv\xE1lida ou maior que 1 MiB.");
+    const bytes = Buffer.from(partes[2], "base64");
+    const tipo = identificar(bytes);
+    if (bytes.length > LIMITE_IMAGEM || tipo !== partes[1]) throw new ErroFormulario("Formato ou tamanho da imagem n\xE3o confirmado.");
+    return { tipo, dados: bytes.toString("base64") };
+  }
+  let caminho = referencia;
+  if (caminho.startsWith("file:")) {
+    const url = new URL(caminho);
+    if (url.hostname && url.hostname !== "localhost") throw new ErroFormulario("Use uma imagem neste computador.");
+    caminho = fileURLToPath2(url);
+  }
+  if (caminho.startsWith("\\\\") || /^[a-z][a-z\d+.-]*:\/\//i.test(caminho)) throw new ErroFormulario("Use uma imagem local, sem servidor remoto.");
+  if (!isAbsolute2(caminho)) {
+    if (!/^assets[\\/]/.test(caminho)) throw new ErroFormulario("Informe o caminho absoluto da imagem ou um asset do plugin.");
+    const base = resolve3(diretorioAssets ?? fileURLToPath2(new URL("../assets/", import.meta.url)));
+    caminho = resolve3(base, caminho.replace(/^assets[\\/]/, ""));
+    if (relative2(base, caminho).startsWith("..")) throw new ErroFormulario("Refer\xEAncia de imagem fora dos assets.");
+  }
+  const arquivo = await open2(caminho, "r");
+  try {
+    const info = await arquivo.stat();
+    if (!info.isFile() || info.size < 1 || info.size > LIMITE_IMAGEM) throw new ErroFormulario("A imagem deve ser um arquivo de at\xE9 1 MiB.");
+    const memoria = Buffer.alloc(info.size + 1);
+    let usados = 0;
+    while (usados < memoria.length) {
+      const { bytesRead } = await arquivo.read(memoria, usados, memoria.length - usados, usados);
+      if (!bytesRead) break;
+      usados += bytesRead;
+    }
+    if (usados > info.size) throw new ErroFormulario("A imagem mudou durante a leitura. Tente novamente.");
+    const bytes = memoria.subarray(0, usados);
+    return { tipo: identificar(bytes), dados: bytes.toString("base64") };
+  } finally {
+    await arquivo.close();
+  }
+}
+async function lerImagemFormulario({ banco, dono, entrada, diretorioAssets }) {
+  if (!entrada || Object.keys(entrada).some((chave) => !["id", "pergunta", "opcao"].includes(chave)) || typeof entrada.id !== "string" || entrada.id.length < 1 || entrada.id.length > 100 || typeof entrada.pergunta !== "string" || entrada.pergunta.length > 100 || !Number.isInteger(entrada.opcao) || entrada.opcao < 0 || entrada.opcao > 19) throw new ErroFormulario("Refer\xEAncia de alternativa visual inv\xE1lida.");
+  const registro2 = await new Repositorio(banco).ler(dono, entrada.id);
+  const pergunta = registro2.formulario.perguntas.find((item) => item.id === entrada.pergunta);
+  if (pergunta?.tipo !== "imagens" || !pergunta.opcoes[entrada.opcao]) throw new ErroFormulario("Alternativa visual n\xE3o encontrada.");
+  try {
+    return { content: [], _meta: { imagem: await carregar(pergunta.opcoes[entrada.opcao].imagem, diretorioAssets) } };
+  } catch (erro) {
+    throw erro instanceof ErroFormulario ? erro : new ErroFormulario("N\xE3o foi poss\xEDvel ler a imagem local. Confira se o arquivo ainda existe e est\xE1 acess\xEDvel.");
+  }
+}
+
 // src/servidor-desktop.mjs
 var armazenamento = abrirArmazenamentoDesktop({ diretorio: process.env.PERGUNTAS_DIRETORIO_DADOS });
+var versaoPlugin = VERSAO_PLUGIN;
+var componentes = join4(process.env.LOCALAPPDATA, "PerguntasDecisoes", "componentes", versaoPlugin);
+var capturador = join4(componentes, "native/CapturaMicrofone.exe");
+var ditado = criarServicoDitado({ banco: armazenamento.DB, dono: armazenamento.dono, executavel: capturador });
+var ferramentas = [...FERRAMENTAS, FERRAMENTA_DITADO, FERRAMENTA_IMAGEM, FERRAMENTA_COPIA];
 var html = readFileSync2(new URL("../dist/web/painel.html", import.meta.url), "utf8");
 var imagemIcone = readFileSync2(new URL("../assets/icone-128.png", import.meta.url));
 var icones = [{ src: `data:image/png;base64,${imagemIcone.toString("base64")}`, mimeType: "image/png", sizes: ["128x128"] }];
-var servidor = new Server({ name: "perguntas-decisoes", title: "Perguntas e decis\xF5es", version: "0.3.5", icons: icones }, { capabilities: { tools: {}, resources: {} } });
-servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: FERRAMENTAS }));
-servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ name: "painel", uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app" }] }));
+var servidor = new Server({ name: "perguntas-decisoes", title: "Perguntas e decis\xF5es", version: versaoPlugin, icons: icones }, { capabilities: { tools: {}, resources: {} } });
+servidor.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: ferramentas }));
+servidor.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: RECURSOS_INTERFACE }));
 servidor.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({ resourceTemplates: [] }));
 servidor.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
-  if (params.uri !== URI_INTERFACE) throw new Error("Recurso de interface n\xE3o encontrado.");
-  return { contents: [{ uri: URI_INTERFACE, mimeType: "text/html;profile=mcp-app", text: html, _meta: { "openai/ui": { preferredDisplayMode: "fullscreen", availableDisplayModes: ["fullscreen"] } } }] };
+  return { contents: [lerRecursoInterface(html, params.uri)] };
 });
 servidor.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
   try {
+    if (params.name === FERRAMENTA_COPIA.name) return { content: [], _meta: await copiarNoWindows(params.arguments) };
+    if (params.name === "controlar_ditado") return { content: [], _meta: await ditado.controlar(params.arguments ?? {}) };
+    if (params.name === "ler_imagem") return await lerImagemFormulario({ banco: armazenamento.DB, dono: armazenamento.dono, entrada: params.arguments ?? {}, diretorioAssets: join4(componentes, "assets") });
     return await chamarFerramenta(params.name, params.arguments ?? {}, armazenamento.dono, armazenamento.DB);
   } catch (erro) {
     console.error("Opera\xE7\xE3o local n\xE3o confirmada:", erro.message);
-    return { isError: true, content: [{ type: "text", text: erro instanceof ErroFormulario ? erro.message : "Falha no armazenamento local. O progresso n\xE3o foi confirmado." }] };
+    return { isError: true, ...erro instanceof ErroFormulario ? { _meta: { codigo_erro: erro.codigo } } : {}, content: [{ type: "text", text: params.name === "controlar_ditado" || erro instanceof ErroFormulario ? erro.message : "Falha no armazenamento local. O progresso n\xE3o foi confirmado." }] };
   }
 });
-servidor.onclose = () => armazenamento.fechar();
+servidor.onclose = () => {
+  ditado.fechar();
+  armazenamento.fechar();
+};
 servidor.onerror = (erro) => console.error("Falha no protocolo da ferramenta:", erro.message);
 await servidor.connect(new StdioServerTransport(process.stdin, process.stdout, { maxBufferSize: LIMITE_BUFFER_TRANSPORTE }));
 async function encerrar() {
+  ditado.fechar();
   await servidor.close();
   armazenamento.fechar();
 }

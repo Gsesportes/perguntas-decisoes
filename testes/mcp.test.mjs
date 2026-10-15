@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE } from '../src/servidor.mjs';
+import { atenderMcp, chamarFerramenta, FERRAMENTAS, URI_INTERFACE, URI_INTERFACE_LEGADA, URI_INTERFACE_CHAT } from '../src/servidor.mjs';
 import { bancoLocal } from '../scripts/banco-local.mjs';
 import { OpenAIUiToolMetadataSchema } from '@openai/mcp-extensions/server';
 
@@ -13,13 +13,13 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
     fetch: async (url, opcoes) => {
       const request = new Request(url, opcoes);
       request.headers.set('oai-authenticated-user-id', 'perfil-teste');
-      return atenderMcp(request, { DB }, '<div>Interface registrada</div>');
+      return atenderMcp(request, { DB }, '<div id="perguntas-decisoes-app">Interface registrada</div>');
     }
   });
   try {
     await cliente.connect(transporte);
     const ferramentas = await cliente.listTools();
-    assert.equal(ferramentas.tools.filter(item => item._meta?.ui?.visibility?.[0] !== 'app').length, 2);
+    assert.equal(ferramentas.tools.filter(item => item._meta?.ui?.visibility?.[0] !== 'app').length, 4);
     const abertura = ferramentas.tools.find(item => item.name === 'abrir_painel');
     assert.equal(abertura.title, 'Perguntas e decisões');
     assert.equal(abertura._meta.ui.resourceUri, URI_INTERFACE);
@@ -33,8 +33,15 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
     assert.equal(resultado._meta.formulario.perguntas.length, 50);
     assert.deepEqual(resultado.content, []);
     const recurso = await cliente.readResource({ uri: URI_INTERFACE });
+    const recursos = await cliente.listResources(); assert.equal(recursos.resources[0].uri, URI_INTERFACE);
+    const legado = await cliente.readResource({ uri: URI_INTERFACE_LEGADA });
+    assert.notEqual(URI_INTERFACE, URI_INTERFACE_LEGADA); assert.equal(legado.contents[0].text, recurso.contents[0].text);
     assert.equal(recurso.contents[0].mimeType, 'text/html;profile=mcp-app');
-    assert.deepEqual(recurso.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen']);
+    assert.deepEqual(recurso.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen', 'inline']);
+    assert.deepEqual(recurso.contents[0]._meta.ui.permissions, { clipboardWrite: {} });
+    const chat = await cliente.readResource({ uri: URI_INTERFACE_CHAT });
+    assert.equal(chat.contents[0]._meta['openai/ui'].preferredDisplayMode, 'inline');
+    assert.match(chat.contents[0].text, /data-apresentacao="chat"/);
   } finally { await cliente.close(); DB.fechar(); }
 });
 
@@ -69,6 +76,9 @@ test('Rascunho é reaberto, versões protegem janelas concorrentes e a entrega s
     const rascunho = { respostas: { p1: 'Não' }, observacoes: { p1: 'Ressalva preservada' }, gerais: '' };
     await chamarFerramenta('salvar_rascunho', { id, versao: 1, rascunho }, dono, DB);
     await assert.rejects(chamarFerramenta('salvar_rascunho', { id, versao: 1, rascunho }, dono, DB), /mudou/);
+    const recusa = await atenderMcp(new Request('https://teste.local/mcp', { method: 'POST', headers: { 'oai-authenticated-user-id': dono }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'salvar_rascunho', arguments: { id, versao: 1, rascunho } } }) }), { DB }, 'Interface');
+    const recusado = (await recusa.json()).result;
+    assert.equal(recusado.isError, true); assert.equal(recusado._meta.codigo_erro, 'conflito');
     const reaberto = await chamarFerramenta('ler_formulario', { id }, dono, DB);
     assert.equal(reaberto._meta.rascunho.respostas.p1, 'Não');
     const preparado = await chamarFerramenta('preparar_entrega', { id, versao: reaberto._meta.versao, rascunho }, dono, DB);
@@ -82,9 +92,9 @@ test('Rascunho é reaberto, versões protegem janelas concorrentes e a entrega s
 
 test('Ferramentas visíveis mantêm orçamento de contexto e não repetem o preenchimento', () => {
   const visiveis = FERRAMENTAS.filter(item => item._meta?.ui?.visibility?.[0] !== 'app');
-  assert.equal(visiveis.length, 2);
+  assert.equal(visiveis.length, 4);
   const tamanho = new TextEncoder().encode(JSON.stringify(visiveis)).length;
-  assert.ok(tamanho < 3500, `Definições visíveis excessivas: ${tamanho} bytes.`);
+  assert.ok(tamanho < 5000, `Definições visíveis excessivas: ${tamanho} bytes.`);
 });
 
 test('Falha na entrega permite retomar a edição sem perder respostas', async () => {

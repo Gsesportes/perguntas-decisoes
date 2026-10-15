@@ -1,12 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, copyFile, writeFile, rm } from 'node:fs/promises';
-import { join, dirname, resolve } from 'node:path';
+import { mkdtemp, mkdir, copyFile, writeFile, readFile, rm } from 'node:fs/promises';
+import { join, dirname, resolve, relative, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { ARQUIVOS_PUBLICOS } from '../scripts/arquivos-publicos.mjs';
+import { ARQUIVOS_PUBLICOS, ARQUIVOS_GERADOS } from '../scripts/arquivos-publicos.mjs';
 import { auditarPublicacao } from '../scripts/auditar-publicacao.mjs';
 import { configuracaoMcp } from '../scripts/configuracao-mcp.mjs';
+
+test('publicação inclui as dependências locais dos módulos distribuídos', async () => {
+  const raiz = fileURLToPath(new URL('../', import.meta.url));
+  const permitidos = new Set([...ARQUIVOS_PUBLICOS, ...ARQUIVOS_GERADOS]);
+  for (const caminho of ARQUIVOS_PUBLICOS.filter(item => item.endsWith('.mjs'))) {
+    const fonte = await readFile(join(raiz, caminho), 'utf8');
+    const imports = /^\s*(?:import\s+[^\r\n;]*?\s+from\s+|export\s+[^\r\n;]*?\s+from\s+|import\s*)['"](\.{1,2}\/[^'"]+)['"]/gm;
+    for (const correspondencia of fonte.matchAll(imports)) {
+      const dependencia = relative(raiz, resolve(dirname(join(raiz, caminho)), correspondencia[1])).split(sep).join('/');
+      assert.ok(permitidos.has(dependencia), `Dependência ausente da publicação: ${caminho} → ${dependencia}`);
+    }
+  }
+});
 
 test('Cópia por inclusão é neutra e recusa registros privados ou segredos acrescentados', async () => {
   const pasta = await mkdtemp(join(tmpdir(), 'perguntas-publicacao-'));
@@ -38,4 +51,17 @@ test('Diagnóstico usa comando, argumentos e diretório do manifesto', async () 
     assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + (process.platform === 'win32' ? '\\' : '/')));
     await rm(pasta, { recursive: true, force: true });
   }
+});
+
+test('diagnóstico expande variáveis oficiais e protege o diretório de dados', async () => {
+  const pasta = await mkdtemp(join(tmpdir(), 'variaveis-plugin-'));
+  const dados = join(pasta, 'dados');
+  try {
+    await writeFile(join(pasta, 'mcp.json'), JSON.stringify({ mcpServers: { perguntas: { command: 'node', args: ['${PLUGIN_ROOT}/server/servidor.mjs'], cwd: '${PLUGIN_DATA}' } } }));
+    await assert.rejects(configuracaoMcp(pasta), /diretório de dados/);
+    const c = await configuracaoMcp(pasta, { diretorioDados: dados });
+    assert.equal(c.cwd, resolve(dados)); assert.equal(c.args[0], resolve(pasta) + '/server/servidor.mjs');
+    await writeFile(join(pasta, 'mcp.json'), JSON.stringify({ mcpServers: { perguntas: { command: 'node', args: [], cwd: '${PLUGIN_DATA}/../fora' } } }));
+    await assert.rejects(configuracaoMcp(pasta, { diretorioDados: dados }), /dentro do pacote/);
+  } finally { assert.ok(resolve(pasta).startsWith(resolve(tmpdir()) + (process.platform === 'win32' ? '\\' : '/'))); await rm(pasta, { recursive: true, force: true }); }
 });

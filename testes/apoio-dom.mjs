@@ -17,9 +17,10 @@ export class ElementoTeste {
 export function criarDomTeste() {
   globalThis.document = { createElement: tag => new ElementoTeste(tag), createTextNode: texto => texto };
   const raiz = new ElementoTeste(); const formulario = new ElementoTeste('form'); formulario.setAttribute('data-formulario', ''); raiz.append(formulario);
-  for (const nome of ['origem', 'erro', 'progresso', 'pagina', 'barra', 'anterior', 'proximo', 'entregas', 'gerais', 'conexao', 'retomar', 'estado', 'titulo', 'pendentes', 'sucesso', 'limpar', 'perguntas']) {
+  for (const nome of ['origem', 'erro', 'aviso-apresentacao', 'progresso', 'pagina', 'barra', 'anterior', 'proximo', 'entregas', 'gerais', 'conexao', 'retomar', 'estado', 'titulo', 'pendentes', 'sucesso', 'limpar', 'perguntas']) {
     const item = new ElementoTeste(['anterior', 'proximo', 'retomar', 'limpar'].includes(nome) ? 'button' : 'div'); item.setAttribute('data-' + nome, '');
-    (['origem', 'titulo', 'pendentes', 'sucesso'].includes(nome) ? raiz : formulario).append(item);
+    if (nome === 'aviso-apresentacao') item.hidden = true;
+    (['origem', 'titulo', 'pendentes', 'sucesso', 'aviso-apresentacao'].includes(nome) ? raiz : formulario).append(item);
   }
   const gerais = new ElementoTeste('textarea'); gerais.setAttribute('id', 'pd-observacoes-gerais'); formulario.append(gerais);
   for (const modo of ['chat', 'anotacao', 'arquivo']) { const botao = new ElementoTeste('button'); botao.setAttribute('data-entrega', modo); formulario.append(botao); }

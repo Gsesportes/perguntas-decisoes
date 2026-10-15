@@ -18,7 +18,10 @@ async function conectar() {
   let diagnostico = '';
   transporte.stderr?.on('data', parte => { diagnostico += parte.toString(); });
   const cliente = new Client({ name: 'verificacao-desktop', version: '1.0.0' });
-  try { await cliente.connect(transporte); }
+  try {
+    await cliente.connect(transporte);
+    assert.equal(cliente.getServerVersion()?.version, manifesto.version, 'A versão do servidor não corresponde ao manifesto do catálogo.');
+  }
   catch (erro) { await transporte.close(); throw new Error(`${erro.message}\n${diagnostico}`); }
   return cliente;
 }
@@ -26,7 +29,7 @@ let cliente = await conectar();
 try {
   const ferramentas = await cliente.listTools();
   const visiveis = ferramentas.tools.filter(ferramenta => ferramenta._meta?.ui?.visibility?.[0] !== 'app');
-  assert.equal(visiveis.length, 2);
+  assert.equal(visiveis.length, 4);
   const abertura = ferramentas.tools.find(ferramenta => ferramenta.name === 'abrir_painel');
   assert.equal(abertura.title, 'Perguntas e decisões');
   assert.equal(abertura._meta.ui.resourceUri, 'ui://perguntas-decisoes/painel');
@@ -40,11 +43,19 @@ try {
   const leitura = await cliente.readResource({ uri: 'ui://perguntas-decisoes/painel' });
   assert.equal(leitura.contents[0].mimeType, 'text/html;profile=mcp-app');
   assert.ok(leitura.contents[0].text.includes('perguntas-decisoes-app'));
+  assert.equal(leitura.contents[0]._meta['openai/ui'].preferredDisplayMode, 'fullscreen');
+  assert.deepEqual(leitura.contents[0]._meta['openai/ui'].availableDisplayModes, ['fullscreen', 'inline']);
+  assert.ok(leitura.contents[0].text.includes('data-apresentacao="lateral"'));
+  const leituraChat = await cliente.readResource({ uri: 'ui://perguntas-decisoes/chat' });
+  assert.equal(leituraChat.contents[0]._meta['openai/ui'].preferredDisplayMode, 'inline');
+  assert.ok(leituraChat.contents[0].text.includes('data-apresentacao="chat"'));
+  assert.equal(ferramentas.tools.find(item => item.name === 'criar_formulario_no_chat')._meta.ui.resourceUri, 'ui://perguntas-decisoes/chat');
   const salvo = await cliente.callTool({ name: 'salvar_rascunho', arguments: { id, versao: criado._meta.versao, rascunho: { respostas: { p1: 'Não' }, observacoes: { p1: 'Comentário da verificação local.' } } } });
   assert.equal(salvo.isError, undefined);
   await cliente.close();
   cliente = await conectar();
-  const reaberto = await cliente.callTool({ name: 'ler_formulario', arguments: { id } });
+  const reaberto = await cliente.callTool({ name: 'abrir_no_chat', arguments: { id } });
+  assert.equal(reaberto.structuredContent.id, id);
   assert.equal(reaberto._meta.rascunho.respostas.p1, 'Não');
   assert.equal(reaberto._meta.rascunho.observacoes.p1, 'Comentário da verificação local.');
   const painelReaberto = await cliente.callTool({ name: 'abrir_painel', arguments: {} });
@@ -64,9 +75,18 @@ try {
   const preenchimentoLote = { respostas: Object.fromEntries(Array.from({ length: 50 }, (_, i) => ['p' + (i + 1), 'Aprovar'])) };
   const entregaLote = await cliente.callTool({ name: 'preparar_entrega', arguments: { id: lote.structuredContent.id, versao: 1, rascunho: preenchimentoLote } });
   await cliente.callTool({ name: 'confirmar_entrega', arguments: { id: lote.structuredContent.id, token: entregaLote._meta.entrega.token } });
+  const criadoNoChat = await cliente.callTool({ name: 'criar_formulario_no_chat', arguments: { perguntas: [{ texto: 'Exemplo no chat?', tipo: 'sim_nao' }] } });
+  const idNoChat = criadoNoChat.structuredContent.id;
+  const rascunhoNoChat = { respostas: { p1: 'Sim' }, observacoes: { p1: 'Observação de teste nas duas apresentações.' } };
+  const salvoNoChat = await cliente.callTool({ name: 'salvar_rascunho', arguments: { id: idNoChat, versao: 1, rascunho: rascunhoNoChat } });
+  const reabertoNaLateral = await cliente.callTool({ name: 'abrir_painel', arguments: { id: idNoChat } });
+  assert.equal(reabertoNaLateral.structuredContent.id, idNoChat);
+  assert.equal(reabertoNaLateral._meta.rascunho.observacoes.p1, rascunhoNoChat.observacoes.p1);
+  const entregaNoChat = await cliente.callTool({ name: 'preparar_entrega', arguments: { id: idNoChat, versao: salvoNoChat._meta.versao, rascunho: rascunhoNoChat } });
+  await cliente.callTool({ name: 'confirmar_entrega', arguments: { id: idNoChat, token: entregaNoChat._meta.entrega.token } });
   assert.deepEqual((await cliente.callTool({ name: 'abrir_painel', arguments: {} }))._meta.pendentes, []);
-  const resultado = { data: new Date().toISOString(), transporte: 'stdio', pacote: manifesto.version, comandoDoManifesto: configuracao.command, ferramentasVisiveis: visiveis.length, ferramentasConferidas: ferramentas.tools.map(item => item.name), lote: 50, recursoInterface: 'text/html;profile=mcp-app', entradaPainelDeclarada: { titulo: abertura.title, tipo: 'thread', abreSemArgumentos: true }, persistenciaAposReiniciarProcessoDeTeste: true, limpezaRegistrosFicticios: true, entregasNaConversaTestadas: false, provaDesktopVisual: false, menuFerramentasComprovado: false };
+  const resultado = { data: new Date().toISOString(), transporte: 'stdio', pacote: manifesto.version, comandoDoManifesto: configuracao.command, ferramentasVisiveis: visiveis.length, ferramentasConferidas: ferramentas.tools.map(item => item.name), lote: 50, recursoInterface: 'text/html;profile=mcp-app', apresentacaoPrincipal: 'lateral', apresentacaoOpcional: 'chat', respostasCompartilhadasEntreApresentacoes: true, entradaPainelDeclarada: { titulo: abertura.title, tipo: 'thread', abreSemArgumentos: true }, persistenciaAposReiniciarProcessoDeTeste: true, limpezaRegistrosFicticios: true, entregasNaConversaTestadas: false, provaDesktopVisual: false, menuFerramentasComprovado: false };
   await mkdir(new URL('.local/diagnosticos/', raiz), { recursive: true });
   await writeFile(new URL('.local/diagnosticos/verificacao-desktop.json', raiz), JSON.stringify(resultado, null, 2));
-  console.log('Processo local verificado: inicialização, duas ferramentas visíveis, recurso de interface e retomada após reiniciar.');
+  console.log('Processo local verificado: quatro ferramentas visíveis, lateral padrão, chat opcional e respostas preservadas entre apresentações.');
 } finally { await cliente.close(); }

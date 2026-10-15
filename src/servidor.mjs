@@ -1,18 +1,23 @@
 import { normalizarFormulario, rascunhoVazio, validarRascunho, montarEntrega, migrarPaginacao, ErroFormulario, TIPOS, validarTamanhoChamada } from './formulario.mjs';
 import { Repositorio } from './repositorio.mjs';
 import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/cfworker';
+import { RECURSOS_INTERFACE, lerRecursoInterface, URI_INTERFACE, URI_INTERFACE_CHAT } from './exibicao.mjs';
 
-export const URI_INTERFACE = 'ui://perguntas-decisoes/painel';
+export { URI_INTERFACE, URI_INTERFACE_CHAT };
 const esquemaPergunta = { anyOf: [{ type: 'string' }, { type: 'object', properties: { texto: { type: 'string' }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } }, min: { type: 'number' }, max: { type: 'number' }, passo: { type: 'number' } }, required: ['texto'], additionalProperties: false }] };
 const objeto = properties => ({ type: 'object', properties, additionalProperties: false });
 const leitura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const alteracao = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 const ui = { ui: { resourceUri: URI_INTERFACE } };
+const uiChat = { ui: { resourceUri: URI_INTERFACE_CHAT } };
 const privada = { ui: { visibility: ['app'] } };
+const entradaCriacao = { ...objeto({ titulo: { type: 'string' }, perguntas: { type: 'array', items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } } }), required: ['perguntas'] };
 
 export const FERRAMENTAS = [
-  { name: 'criar_formulario', title: 'Responder perguntas', description: 'Cria perguntas e abre a aba lateral. Não selecione chats nem ative janelas para abrir ou verificar. Tipos: texto, sim_nao, unica, multipla, nota, escala, numero, data, hora. Tipo/opções comuns, observações e páginas automáticas.', inputSchema: { ...objeto({ titulo: { type: 'string' }, perguntas: { type: 'array', items: esquemaPergunta }, tipo: { enum: TIPOS }, opcoes: { type: 'array', items: { type: 'string' } } }), required: ['perguntas'] }, annotations: alteracao, _meta: ui },
-  { name: 'abrir_painel', title: 'Perguntas e decisões', description: 'Abre a aba lateral; pelo id retoma um formulário, sem id lista pendentes. Preserve o chat principal: não navegue nem ative janelas para abrir ou verificar.', inputSchema: objeto({ id: { type: 'string' } }), annotations: leitura, _meta: { ...ui, 'openai/ui': { entrypoints: [{ type: 'thread' }, { type: 'global' }] } } },
+  { name: 'criar_formulario', title: 'Responder perguntas', description: 'Cria perguntas na barra lateral direita, apresentação padrão. Preserve o chat principal.', inputSchema: entradaCriacao, annotations: alteracao, _meta: ui },
+  { name: 'abrir_painel', title: 'Perguntas e decisões', description: 'Abre a barra lateral direita, padrão; pelo id retoma, sem id lista pendentes. Preserve o chat principal.', inputSchema: objeto({ id: { type: 'string' } }), annotations: leitura, _meta: { ...ui, 'openai/ui': { entrypoints: [{ type: 'thread' }, { type: 'global' }] } } },
+  { name: 'criar_formulario_no_chat', title: 'Responder no chat', description: 'Cria perguntas dentro da conversa somente quando a pessoa pedir o modo no chat.', inputSchema: entradaCriacao, annotations: alteracao, _meta: uiChat },
+  { name: 'abrir_no_chat', title: 'Abrir no chat', description: 'Abre no chat somente quando solicitado; pelo id retoma, sem id lista pendentes. Preserve a conversa principal.', inputSchema: objeto({ id: { type: 'string' } }), annotations: leitura, _meta: uiChat },
   { name: 'ler_formulario', inputSchema: { ...objeto({ id: { type: 'string' } }), required: ['id'] }, annotations: leitura, _meta: privada },
   { name: 'listar_pendentes', inputSchema: objeto({ cursor: { ...objeto({ criado_em: { type: 'string', minLength: 1, maxLength: 100 }, id: { type: 'string', minLength: 1, maxLength: 100 } }), required: ['criado_em', 'id'] } }), annotations: leitura, _meta: privada },
   { name: 'salvar_rascunho', inputSchema: { ...objeto({ id: { type: 'string' }, versao: { type: 'integer' }, rascunho: { type: 'object' } }), required: ['id', 'versao', 'rascunho'] }, annotations: alteracao, _meta: privada },
@@ -51,6 +56,8 @@ function paraInterface(registro) {
 
 export async function chamarFerramenta(nome, entrada, dono, banco) {
   validarEntradaFerramenta(nome, entrada);
+  if (nome === 'criar_formulario_no_chat') nome = 'criar_formulario';
+  if (nome === 'abrir_no_chat') nome = 'abrir_painel';
   const repositorio = new Repositorio(banco);
   if (nome === 'criar_formulario') return paraInterface(await repositorio.criar(dono, normalizarFormulario(entrada), rascunhoVazio()));
   if (nome === 'abrir_painel') {
@@ -100,13 +107,16 @@ export async function atenderMcp(request, env, interfaceHtml) {
   const responder = result => json({ jsonrpc: '2.0', id: chamada.id, result });
   if (chamada.method === 'initialize') {
     const suportados = ['2025-03-26', '2025-06-18', '2025-11-25', '2026-07-28'];
-    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.1.0' } });
+    return responder({ protocolVersion: suportados.includes(chamada.params?.protocolVersion) ? chamada.params.protocolVersion : '2025-11-25', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'perguntas-decisoes', title: 'Perguntas e decisões', version: '0.3.9' } });
   }
   if (chamada.method === 'ping') return responder({});
   if (chamada.method === 'tools/list') return responder({ tools: FERRAMENTAS });
-  if (chamada.method === 'resources/list') return responder({ resources: [{ name: 'painel', uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app' }] });
+  if (chamada.method === 'resources/list') return responder({ resources: RECURSOS_INTERFACE });
   if (chamada.method === 'resources/templates/list') return responder({ resourceTemplates: [] });
-  if (chamada.method === 'resources/read' && chamada.params?.uri === URI_INTERFACE) return responder({ contents: [{ uri: URI_INTERFACE, mimeType: 'text/html;profile=mcp-app', text: interfaceHtml, _meta: { 'openai/ui': { preferredDisplayMode: 'fullscreen', availableDisplayModes: ['fullscreen'] } } }] });
+  if (chamada.method === 'resources/read') {
+    try { return responder({ contents: [lerRecursoInterface(interfaceHtml, chamada.params?.uri)] }); }
+    catch (erro) { return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32602, message: erro.message } }); }
+  }
   if (chamada.method !== 'tools/call') return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32601, message: 'Método não encontrado.' } });
   const dono = request.headers.get('oai-authenticated-user-id');
   if (!dono) return json({ jsonrpc: '2.0', id: chamada.id, error: { code: -32001, message: 'Entre na sua conta para acessar formulários.' } }, 401);

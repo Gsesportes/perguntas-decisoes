@@ -49,11 +49,13 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 - [x] Lint, 134 testes, construção e protocolo entre apresentações.
 - [x] Testar escrita e releitura reais na área de transferência do Windows, antes e depois de limpar o registro fictício; conteúdo anterior restaurado.
 - [x] Instalar versão completa 0.5.0 e conferir versão efetivamente carregada nesta conversa: ainda 0.4.6.
-- [ ] Carregar a interface 0.5.0 nesta conversa.
+- [x] Carregar a interface 0.5.0 nesta conversa; exibição do formulário e botão Copiar confirmada pela pessoa em 2026-10-15.
 - [ ] Exercitar Copiar no painel real antes e depois da entrega.
 - [x] Auditar fonte pública e registrar alterações em Git local, sem publicação remota.
 
 ## Histórico de mudanças
+
+- 2026-10-15 — Conexão da conversa redisponibilizada com os dois recursos e quatro ferramentas da versão 0.5.0. A ferramenta da própria conversa solicitou abrir o formulário curto já criado; a pessoa confirmou título, versão 0.5.0 e botão Copiar no painel. A leitura automatizada de tela não dispõe de superfícies nesta sessão; confirmação de exibição é humana. Testes de clique em Copiar antes e depois do envio ainda aguardam execução da pessoa, sem reabrir o registro depois da entrega.
 
 - 2026-10-14 — Nova tentativa de abertura recebeu ainda recurso 0.4.6. Renovado somente o plugin próprio pela desinstalação oficial e reinstalação 0.5.0, sem reiniciar o Codex. Dez rascunhos anteriores conferidos por ID, versão e estado de entrega; habilitação específica da conexão própria reposta com preservação semântica das demais configurações. Criado pela versão 0.5.0 um formulário de uma pergunta e observações, sem respostas, no perfil real. Ferramentas retiradas do contexto durante a renovação; abertura ainda aguarda nova seleção do plugin. Criação pelo protocolo não foi apresentada como painel aberto.
 

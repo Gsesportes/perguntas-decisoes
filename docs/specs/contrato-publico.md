@@ -79,6 +79,8 @@ Web, celular, nuvem e sistemas operacionais diferentes não estão validados por
 
 ## Histórico de mudanças
 
+- 2026-10-15 — Recebido aceite manual geral da versão 0.5.1 e autorização explícita para atualizar e mesclar o PR #3 em main. Registro por relato da pessoa usuária, sem observação independente dos cenários pelo agente. Código e catálogo da versão testada preservados; atualização exclusivamente documental, sem release. Detalhes em copia-e-apresentacoes.md.
+
 - 2026-10-15 — Fonte 0.5.1 corrige encerramento do ditado com preparo pendente, paginação após redução remota das perguntas visíveis e aviso de apresentação já confirmada. Incluídos treze testes de regressão e controle, totalizando 147 aprovados; lint, construção, catálogo e protocolo aprovados. Instalação oficial e recursos desta conversa conferidos em 0.5.1, com versões anteriores preservadas. Layout, tipos de perguntas e capturador sem mudança. Provas nativas permanecem pendentes; PR #3 em rascunho, sem merge ou release. Contrato detalhado em copia-e-apresentacoes.md.
 
 - 2026-10-14 — Fonte 0.5.0 acrescenta cópia das respostas na última página e na tela final, com escrita real no Windows confirmada por releitura, mantendo texto final somente na memória da tela e limpeza do banco após entrega. Integradas à fonte atual as melhorias do PR #1: lateral padrão, chat opcional, formulário compacto e conferência de catálogo. Quatro ferramentas visíveis, duas apresentações e cópia privada. Lint, 134 testes e protocolo passaram; instalação 0.5.0 confirmada independentemente da conversa ainda conectada em 0.4.6. Reteste do painel pendente, sem reinício nem publicação remota. Contrato completo em copia-e-apresentacoes.md.

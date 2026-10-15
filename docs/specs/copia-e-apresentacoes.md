@@ -2,7 +2,7 @@
 titulo: 'Cópia das respostas e integração das apresentações'
 tipo: 'funcionalidade'
 criado: '2026-10-14'
-estado: 'implementado-reteste-nativo-pendente'
+estado: 'aceito-por-relato-de-uso'
 contexto: []
 ---
 
@@ -12,7 +12,7 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 
 ## Fronteiras e restrições
 
-- Versão completa 0.5.1, sucessora da 0.5.0. Preservar logo, cores, tipografia, organização e seis perguntas por página. Aplicar apenas os espaçamentos compactos do PR e os controles necessários à cópia. Sem reiniciar o Codex, criar chat ou mudar a conversa principal. A etapa de implementação local ocorreu sem publicação; em 2026-10-15 foi autorizada a abertura do PR desta versão. Merge e release não fazem parte dessa autorização.
+- Versão completa 0.5.1, sucessora da 0.5.0. Preservar logo, cores, tipografia, organização e seis perguntas por página. Aplicar apenas os espaçamentos compactos do PR e os controles necessários à cópia. Sem reiniciar o Codex, criar chat ou mudar a conversa principal. A etapa de implementação local ocorreu sem publicação; em 2026-10-15 foi autorizada a abertura do PR desta versão. Posteriormente foi recebido o aceite dos testes manuais e a autorização explícita para atualizar e mesclar o PR #3 em main. Release não faz parte dessa autorização.
 - Copiar na última página, junto às entregas, e na tela de sucesso depois de enviar, anotar ou anexar. Texto completo, legível, com perguntas visíveis, respostas e observações individuais e gerais, na ordem do formulário. Não usar texto compacto interno nem copiar dados ocultos por condições.
 - Antes do envio, a cópia exige formulário completo e salvamentos conferidos. Copiar não prepara entrega, não envia mensagem, não anexa arquivo, não altera respostas e não remove o rascunho. Desabilitar enquanto houver ditado, envio ou cópia em andamento. Sucesso somente depois de confirmação real da escrita na área de transferência; falha visível, permitindo retentar.
 - Depois do envio, usar em memória somente o texto do conjunto entregue enquanto essa tela permanecer aberta. O registro continua sendo removido do banco pela confirmação de entrega. Não recriar rascunho nem persistir cópia em arquivo, log ou configuração. Ao carregar outro formulário, limpar a referência temporária. A área de transferência pertence ao sistema e conserva o texto até outra cópia substituí-lo, independentemente da remoção do rascunho.
@@ -31,7 +31,7 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 - R1: fechar o serviço de ditado marca estado encerrado antes de cancelar sessões e desligar a limpeza. Recusar novos inícios e revalidar o estado após cada espera de início, incluindo validação do destino e preparo do motor, antes de registrar sessão ou solicitar captura. Fechar mais de uma vez é seguro. Padrões de produção continuam usando a verificação real do motor e o capturador atual.
 - R2: depois de conciliar respostas, ajustar a posição à última página válida das perguntas visíveis antes de validar e guardar. Aplicar ao salvamento automático, à escolha Guardar meu preenchimento e ao estado local resultante. Preservar todas as respostas e observações, inclusive ocultas, e a escolha explícita em conflitos reais. Durante ditado, a posição interna deve permanecer válida e o redesenho deve aguardar a liberação do destino.
 - R3: se o contexto do anfitrião já confirma o modo solicitado, uma resposta perdida ou anterior a esse evento não pode reintroduzir aviso de ausência de confirmação. Adaptar somente a conciliação da apresentação do PR #2, revisão 6561921514d36394d022e0f2bcd4511081f7b749. Manter erros visíveis quando não há confirmação, sem repetir pedidos. Preservar recursos versionados, permissão de cópia e demais diferenças da versão atual.
-- Usar versão 0.5.1 para a correção; não substituir os bytes dos componentes 0.5.0 já instalados. Manter o PR #3 em rascunho, sem merge ou release. O relatório recebido é evidência privada e não deve ser publicado com caminhos ou identificação pessoal.
+- Usar versão 0.5.1 para a correção; não substituir os bytes dos componentes 0.5.0 já instalados. A correção foi preparada com o PR #3 em rascunho até receber aceite e autorização posteriores de integração. O relatório recebido é evidência privada e não deve ser publicado com caminhos ou identificação pessoal.
 - Critérios de regressão: nenhuma tentativa de captura depois de fechar; texto independente guardado e recuperação explícita funcional após redução remota de páginas; aviso oculto quando o contexto confirmou antes de uma resposta perdida, com recusa sem confirmação ainda visível.
 
 ## Matriz de entradas, saídas e fronteiras
@@ -59,21 +59,23 @@ Atender ao pedido de copiar as respostas para a área de transferência, incluin
 - [x] Testar escrita e releitura reais na área de transferência do Windows, antes e depois de limpar o registro fictício; conteúdo anterior restaurado.
 - [x] Instalar versão completa 0.5.0 e conferir versão efetivamente carregada nesta conversa: ainda 0.4.6.
 - [x] Carregar a interface 0.5.0 nesta conversa; exibição do formulário e botão Copiar confirmada pela pessoa em 2026-10-15.
-- [ ] Exercitar Copiar no painel real antes e depois da entrega.
+- [x] Receber aceite manual geral das funcionalidades, incluindo a etapa de cópia, pelo relato de uso no painel; sem observação independente dos cliques pelo agente.
 - [x] Auditar fonte pública e registrar alterações em Git local antes de publicar.
 - [x] Publicar a branch codex/versao-0-5-0 e abrir o PR #3 em rascunho, conforme autorização de 2026-10-15.
 - [x] Reproduzir R1, R2 e R3 do PR #3 e corrigir encerramento, paginação conciliada e confirmação da apresentação.
 - [x] Acrescentar treze testes, incluindo controle positivo do início do ditado; executar lint e os 147 testes completos, sem falhas ou casos ignorados.
 - [x] Construir e instalar 0.5.1 sem substituir os componentes 0.5.0; confirmar o servidor pelo leitor oficial e os recursos 0.5.1 desta conversa.
-- [ ] Retestar as três correções com interação humana no painel nativo 0.5.1.
+- [x] Receber aceite da versão 0.5.1 após relato de testes manuais concluídos e autorização explícita para integrar o PR #3; cobertura detalhada de R1–R3 continua sustentada pelas reproduções registradas.
 
 ## Verificação da revisão 0.5.1
 
 Os casos direcionados foram executados antes e depois das correções. Antes, doze dos dezessete casos falharam; passaram os quatro testes de aplicativo já existentes e o controle positivo de início do ditado. Depois, os dezessete passaram, assim como a suíte completa de 147 testes. Para R1, os pontos de substituição de preparo e captura foram adicionados antes da reprodução, sem as proteções de encerramento: o serviço, repositório e SQLite foram os reais, mas nenhum processo de captura ou reconhecimento foi iniciado. R2 usou a interface real com DOM de teste e banco fictício; R3 usou contexto e respostas controlados, incluindo o caminho do aviso no aplicativo.
 
-Lint, construção, comparação do catálogo e diagnóstico stdio passaram. O leitor oficial iniciou o servidor instalado 0.5.1 e anunciou treze operações, quatro visíveis ao agente. Esta conversa também passou a listar os recursos versionados 0.5.1. Isso não comprova atualização de uma aba que já estava aberta nem cliques nessa interface. Microfone real, inferência, cópia na área de transferência e interação nativa não foram exercitados nesta correção. A prova anterior de cópia Windows permanece histórica e o reteste no painel continua pendente. O capturador não mudou e os componentes 0.5.0 foram preservados.
+Lint, construção, comparação do catálogo e diagnóstico stdio passaram. O leitor oficial iniciou o servidor instalado 0.5.1 e anunciou treze operações, quatro visíveis ao agente. Esta conversa também passou a listar os recursos versionados 0.5.1. Isso não comprova atualização de uma aba que já estava aberta nem cliques nessa interface. Microfone real, inferência, cópia na área de transferência e interação nativa não foram exercitados pelo agente nesta correção. Posteriormente, a pessoa usuária informou ter testado tudo, com resultado aparentemente correto, e autorizou atualizar e mesclar o PR. Esse relato constitui aceite manual geral da versão, sem roteiro detalhado ou observação independente de cada cenário pelo agente. A prova anterior de cópia Windows permanece histórica. O capturador não mudou e os componentes 0.5.0 foram preservados.
 
 ## Histórico de mudanças
+
+- 2026-10-15 — Recebido relato de testes manuais concluídos, com resultado considerado adequado, e autorização explícita para atualizar e mesclar o PR #3. Registrado aceite geral da versão 0.5.1, mantendo a distinção entre relato humano, reproduções isoladas e observação independente. Preparada a integração autorizada em main; nenhuma mudança funcional, de pacote ou de versão nesta atualização documental. Release permanece fora do escopo.
 
 - 2026-10-15 — Fonte 0.5.1 corrige os três casos reproduzidos na revisão do PR #3: encerramento definitivo impede solicitar captura após esperas; conciliação e recuperação ajustam a página sem perder conteúdo, inclusive durante ditado com redesenho adiado; confirmação observada da apresentação prevalece sobre resposta perdida ou anterior ao evento, adaptando a lógica do PR #2. Treze testes acrescentados, 147 aprovados, lint, construção e protocolo aprovados. Instalação oficial e recursos desta conversa conferidos em 0.5.1; componentes 0.5.0 preservados. Layout e capturador sem mudança. Provas nativas pendentes; PR mantido em rascunho, sem merge ou release.
 

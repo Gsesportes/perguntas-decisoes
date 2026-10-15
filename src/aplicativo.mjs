@@ -5,7 +5,7 @@ import { capacidadesEntrega, entregarNoAplicativo } from './entregas.mjs';
 import { validarTamanhoChamada } from './formulario.mjs';
 import { EXIBICAO_FORMULARIO, ajustarApresentacao } from './exibicao.mjs';
 
-const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.8' }, { availableDisplayModes: EXIBICAO_FORMULARIO.availableDisplayModes });
+const aplicativo = new App({ name: 'perguntas-decisoes', version: '0.3.9' }, { availableDisplayModes: EXIBICAO_FORMULARIO.availableDisplayModes });
 const apresentacao = document.getElementById('perguntas-decisoes-app').dataset.apresentacao ?? 'lateral';
 const modoEsperado = apresentacao === 'chat' ? 'inline' : 'fullscreen';
 const avisoApresentacao = `O aplicativo não confirmou a abertura ${apresentacao === 'chat' ? 'dentro da conversa' : 'na barra lateral'}.`;

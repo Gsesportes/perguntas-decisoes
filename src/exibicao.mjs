@@ -26,6 +26,12 @@ export async function ajustarApresentacao(aplicativo, apresentacao = 'lateral') 
   const contexto = aplicativo.getHostContext();
   if (contexto?.displayMode === esperado) return esperado;
   if (!contexto?.availableDisplayModes?.includes(esperado)) return contexto?.displayMode ?? 'desconhecido';
-  const resultado = await aplicativo.requestDisplayMode({ mode: esperado });
-  return resultado.mode;
+  let resultado;
+  try { resultado = await aplicativo.requestDisplayMode({ mode: esperado }); }
+  catch (erro) {
+    const observado = aplicativo.getHostContext()?.displayMode;
+    if (observado === esperado) return observado;
+    throw erro;
+  }
+  return aplicativo.getHostContext()?.displayMode === esperado ? esperado : resultado.mode;
 }

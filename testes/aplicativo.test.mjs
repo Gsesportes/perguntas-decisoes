@@ -22,7 +22,7 @@ const construcao = await build({
   }]
 });
 
-async function iniciar(t, apresentacao, contexto, falhaExibicao) {
+async function iniciar(t, apresentacao, contexto, falhaExibicao, opcoes = {}) {
   const anteriores = { document: globalThis.document, window: globalThis.window, aplicativo: globalThis.__aplicativoTeste };
   t.after(() => { globalThis.document = anteriores.document; globalThis.window = anteriores.window; globalThis.__aplicativoTeste = anteriores.aplicativo; });
   const raiz = criarDomTeste();
@@ -34,11 +34,20 @@ async function iniciar(t, apresentacao, contexto, falhaExibicao) {
   let versao = 1;
   const aplicativo = {
     contexto,
+    pedidos: 0,
     getHostContext() { return this.contexto; },
     getHostCapabilities: () => ({}),
     addEventListener: (nome, funcao) => ouvintes.set(nome, funcao),
-    connect: async () => {},
-    requestDisplayMode: async () => { if (falhaExibicao) throw new Error(falhaExibicao); return { mode: contexto.displayMode }; },
+    connect: async () => { if (opcoes.falhaConexao) throw new Error(opcoes.falhaConexao); },
+    requestDisplayMode: async ({ mode }) => {
+      aplicativo.pedidos += 1;
+      if (opcoes.confirmarDurantePedido) {
+        aplicativo.contexto = { ...aplicativo.contexto, displayMode: mode };
+        ouvintes.get('hostcontextchanged')();
+      }
+      if (falhaExibicao) throw new Error(falhaExibicao);
+      return { mode: contexto.displayMode };
+    },
     callServerTool: async () => ({ _meta: { versao: ++versao } })
   };
   globalThis.__aplicativoTeste = aplicativo;
@@ -95,4 +104,36 @@ test('Chat confirmado abre sem aviso de apresentação e preserva o resultado re
   c.carregar();
   assert.equal(c.aviso.hidden, true);
   assert.equal(c.raiz.querySelector('[data-progresso]').textContent, '6 de 7 respondidas');
+});
+
+for (const caso of [
+  { nome: 'chat', apresentacao: 'chat', inicio: 'fullscreen', esperado: 'inline' },
+  { nome: 'painel lateral', apresentacao: 'lateral', inicio: 'inline', esperado: 'fullscreen' }
+]) {
+  test(`Confirmação do ${caso.nome} antes da resposta perdida conserva o modo observado sem aviso`, async t => {
+    const c = await iniciar(t, caso.apresentacao, { displayMode: caso.inicio, availableDisplayModes: ['inline', 'fullscreen'] }, 'Resposta de exibição perdida', { confirmarDurantePedido: true });
+    assert.equal(c.aplicativo.getHostContext().displayMode, caso.esperado);
+    assert.equal(document.documentElement.dataset.modoExibicao, caso.esperado);
+    assert.equal(c.aviso.hidden, true);
+    assert.equal(c.aplicativo.pedidos, 1);
+    c.carregar();
+    assert.equal(c.aviso.hidden, true);
+    assert.equal(c.raiz.querySelector('[data-progresso]').textContent, '6 de 7 respondidas');
+  });
+
+  test(`Confirmação do ${caso.nome} prevalece sobre uma resposta anterior ao evento`, async t => {
+    const c = await iniciar(t, caso.apresentacao, { displayMode: caso.inicio, availableDisplayModes: ['inline', 'fullscreen'] }, undefined, { confirmarDurantePedido: true });
+    assert.equal(c.aplicativo.getHostContext().displayMode, caso.esperado);
+    assert.equal(document.documentElement.dataset.modoExibicao, caso.esperado);
+    assert.equal(c.aviso.hidden, true);
+    assert.equal(c.aplicativo.pedidos, 1);
+  });
+}
+
+test('Falha real de conexão permanece visível mesmo quando o contexto informa o modo desejado', async t => {
+  const c = await iniciar(t, 'chat', { displayMode: 'inline', availableDisplayModes: ['inline', 'fullscreen'] }, undefined, { falhaConexao: 'Falha real de conexão' });
+  assert.equal(c.aviso.hidden, false);
+  assert.match(c.aviso.textContent, /Conexão com o aplicativo não confirmada/);
+  assert.match(c.aviso.textContent, /Falha real de conexão/);
+  assert.equal(c.aplicativo.pedidos, 0);
 });

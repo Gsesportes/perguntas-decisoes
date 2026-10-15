@@ -18,6 +18,7 @@ test('Cliente oficial MCP inicializa, descobre ferramentas, abre interface e cri
   });
   try {
     await cliente.connect(transporte);
+    assert.equal(cliente.getServerVersion().version, '0.3.9');
     const ferramentas = await cliente.listTools();
     assert.equal(ferramentas.tools.filter(item => item._meta?.ui?.visibility?.[0] !== 'app').length, 4);
     const abertura = ferramentas.tools.find(item => item.name === 'abrir_painel');
